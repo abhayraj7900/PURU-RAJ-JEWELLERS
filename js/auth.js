@@ -36,6 +36,7 @@
     mode = nextMode;
     const signup = mode === "signup";
     const reset = mode === "reset";
+    form.dataset.authMode = mode;
     nameField.hidden = !signup;
     nameInput.required = signup;
     document.querySelector("#auth-email-field").hidden = reset;
@@ -64,9 +65,21 @@
       setMessage("Login service could not load. Please refresh the page.", "error");
       return;
     }
+    const callback = new URLSearchParams(window.location.hash.slice(1));
+    if (callback.has('error') || callback.has('error_code')) {
+      history.replaceState(null, '', window.location.pathname);
+      setMessage('This reset link has expired, has already been used, or is invalid. Request a new link with Forgot password and open only the newest email.', 'error');
+      return;
+    }
     const hashType = api.consumeAuthHash();
     if (hashType === "recovery" || new URLSearchParams(window.location.search).get("mode") === "reset") {
       setMode("reset");
+      passwordInput.value = '';
+      if (!await api.getUser()) {
+        setMessage('No valid reset session was found. Request a new reset email and open its newest link.', 'error');
+        submit.disabled = true;
+        const retry = document.createElement('a'); retry.href = 'login.html'; retry.textContent = 'Return to login and request a new link'; form.after(retry);
+      }
       return;
     }
     const session = await api.getSession();
@@ -84,7 +97,7 @@
     }
     forgotButton.disabled = true;
     try {
-      const redirectTo = `${window.location.origin}${window.location.pathname}?mode=reset`;
+      const redirectTo = `${window.location.origin}${window.location.pathname}`;
       await api.sendPasswordReset(email, redirectTo);
       setMessage("Password reset link sent. Please check your email.", "success");
     } catch (error) {

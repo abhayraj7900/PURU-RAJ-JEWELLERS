@@ -1,6 +1,6 @@
 (function(){
  'use strict';
- if(new URLSearchParams(location.search).get('mode')==='reset')return;
+ if(new URLSearchParams(location.search).get('mode')==='reset'||document.querySelector('#auth-form')?.dataset.authMode==='reset')return;
  const emailForm=document.querySelector('#auth-form'),switcher=document.querySelector('.auth-mode-switcher');
  const box=document.createElement('section');box.className='phone-auth';
  box.innerHTML='<h2>Login / Create account</h2><p>Verify your mobile number to access your personal account.</p><form><label>Mobile number (+91)<input name="phone" type="tel" inputmode="numeric" pattern="[6-9][0-9]{9}" maxlength="10" autocomplete="tel-national" placeholder="10-digit mobile number" required></label><div class="otp-step" hidden><label>Verification code<input name="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6"></label></div><button class="button button-gold button-full" type="submit">Request OTP</button><button type="button" class="auth-text-button" data-resend hidden>Resend OTP</button><button type="button" class="auth-text-button" data-change hidden>Change number</button><p role="status"></p></form><p class="form-note">New customers receive an account after verification. Existing email accounts remain separate unless linked securely.</p>';

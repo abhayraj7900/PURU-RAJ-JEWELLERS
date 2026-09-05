@@ -26,6 +26,11 @@ let cartSyncTimer = null;
 let cartSyncReady = false;
 
 document.addEventListener("DOMContentLoaded", async () => {
+  const authReturn = new URLSearchParams(window.location.hash.slice(1));
+  if (authReturn.get('type') === 'recovery' || authReturn.has('error_code') || authReturn.has('error')) {
+    window.location.replace('login.html' + window.location.hash);
+    return;
+  }
   window.TriptiSupabase?.consumeAuthHash();
   setupNavigation();
   setupSearchForms();
