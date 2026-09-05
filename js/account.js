@@ -58,17 +58,23 @@
   async function loadOrders() {
     const container = document.querySelector("#account-orders");
     try {
-      const orders = await api.select("orders", `select=id,order_number,status,total,created_at,order_items(product_name,quantity,size)&user_id=eq.${encodeURIComponent(user.id)}&order=created_at.desc`);
+      let orders;
+      try {
+        orders = await api.select("orders", `select=id,order_number,invoice_number,status,payment_status,total,shipping_status,tracking_url,created_at,order_items(product_name,quantity,size)&user_id=eq.${encodeURIComponent(user.id)}&order=created_at.desc`);
+      } catch (error) {
+        orders = await api.select("orders", `select=id,order_number,status,total,created_at,order_items(product_name,quantity,size)&user_id=eq.${encodeURIComponent(user.id)}&order=created_at.desc`);
+      }
       if (!orders.length) {
         container.innerHTML = '<div class="dashboard-empty"><p>No orders yet.</p><a class="text-link" href="shop.html">Explore jewellery →</a></div>';
         return;
       }
       container.innerHTML = orders.map((order) => `
         <article class="order-card">
-          <div><p class="eyebrow">${escapeHtml(order.order_number)}</p><h3>${formatDate(order.created_at)}</h3></div>
+          <div><p class="eyebrow">${escapeHtml(order.order_number)}</p><h3>${formatDate(order.created_at)}</h3><small>${escapeHtml(order.invoice_number || "Invoice preparing")}</small></div>
           <span class="status-badge status-${escapeHtml(order.status)}">${escapeHtml(order.status)}</span>
           <ul>${(order.order_items || []).map((item) => `<li>${escapeHtml(item.product_name)} × ${item.quantity}${item.size ? ` · Size ${escapeHtml(item.size)}` : ""}</li>`).join("")}</ul>
           <strong>${formatPrice(order.total)}</strong>
+          <div class="order-card-actions"><a class="text-link" href="invoice.html?order=${encodeURIComponent(order.id)}">View invoice →</a>${order.tracking_url ? `<a class="text-link" href="${escapeHtml(order.tracking_url)}" target="_blank" rel="noopener">Track shipment →</a>` : `<span>${order.shipping_status === "created" ? "Shipment booking created" : "Tracking will appear here"}</span>`}</div>
         </article>`).join("");
     } catch (error) {
       container.innerHTML = `<p class="dashboard-inline-error">${escapeHtml(error.message)}</p>`;

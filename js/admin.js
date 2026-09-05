@@ -114,16 +114,22 @@
   }
 
   async function loadOrders() {
-    const orders = await api.select("orders", "select=id,order_number,status,customer_name,email,phone,total,created_at,order_items(product_name,quantity,size)&order=created_at.desc");
+    let orders;
+    try {
+      orders = await api.select("orders", "select=id,order_number,invoice_number,status,payment_status,shipping_status,shipment_id,tracking_url,customer_name,email,phone,total,created_at,order_items(product_name,quantity,size)&order=created_at.desc");
+    } catch (error) {
+      orders = await api.select("orders", "select=id,order_number,status,customer_name,email,phone,total,created_at,order_items(product_name,quantity,size)&order=created_at.desc");
+    }
     const body = document.querySelector("#admin-orders-body");
     body.innerHTML = orders.length ? orders.map((order) => `
       <tr>
-        <td><strong>${escapeHtml(order.order_number)}</strong><small>${formatDate(order.created_at)}</small></td>
+        <td><strong>${escapeHtml(order.order_number)}</strong><small>${escapeHtml(order.invoice_number || "Invoice pending")}</small><small>${formatDate(order.created_at)}</small></td>
         <td><strong>${escapeHtml(order.customer_name)}</strong><small>${escapeHtml(order.phone)}</small></td>
         <td>${(order.order_items || []).map((item) => `${escapeHtml(item.product_name)} × ${item.quantity}${item.size ? ` (${escapeHtml(item.size)})` : ""}`).join("<br>")}</td>
         <td>${formatPrice(order.total)}</td>
+        <td><strong>${escapeHtml((order.payment_status || "pending").replace(/_/g, " "))}</strong><small>${escapeHtml((order.shipping_status || "not created").replace(/_/g, " "))}</small>${order.tracking_url ? `<a class="table-link" href="${escapeHtml(order.tracking_url)}" target="_blank" rel="noopener">Track</a>` : ""}</td>
         <td><select data-order-status="${escapeHtml(order.id)}" aria-label="Status for ${escapeHtml(order.order_number)}">${["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"].map((status) => `<option value="${status}" ${status === order.status ? "selected" : ""}>${status}</option>`).join("")}</select></td>
-      </tr>`).join("") : '<tr><td colspan="5">No orders yet.</td></tr>';
+      </tr>`).join("") : '<tr><td colspan="6">No orders yet.</td></tr>';
     document.querySelector("#stat-orders").textContent = orders.length;
     document.querySelector("#stat-revenue").textContent = formatPrice(orders.filter((order) => order.status !== "cancelled").reduce((total, order) => total + Number(order.total), 0));
   }
@@ -134,6 +140,24 @@
     body.innerHTML = customers.length ? customers.map((customer) => `
       <tr><td><strong>${escapeHtml(customer.full_name || "Customer")}</strong><small>${escapeHtml(customer.email)}</small></td><td>${escapeHtml(customer.phone || "—")}</td><td>${escapeHtml(customer.role)}</td><td>${formatDate(customer.created_at)}</td></tr>`).join("") : '<tr><td colspan="4">No customers yet.</td></tr>';
     document.querySelector("#stat-customers").textContent = customers.filter((customer) => customer.role === "customer").length;
+  }
+
+  async function loadContacts() {
+    const body = document.querySelector("#admin-contacts-body");
+    try {
+      const contacts = await api.select("contact_messages", "select=id,name,email,phone,message,status,created_at&order=created_at.desc");
+      body.innerHTML = contacts.length ? contacts.map((contact) => `
+        <tr>
+          <td><strong>${escapeHtml(contact.name)}</strong><small>${escapeHtml(contact.email)}</small><small>${escapeHtml(contact.phone)}</small></td>
+          <td class="admin-message-cell">${escapeHtml(contact.message)}</td>
+          <td>${formatDate(contact.created_at)}</td>
+          <td><select data-contact-status="${escapeHtml(contact.id)}" aria-label="Message status for ${escapeHtml(contact.name)}">${["new", "in_progress", "resolved", "spam"].map((status) => `<option value="${status}" ${status === contact.status ? "selected" : ""}>${status.replace(/_/g, " ")}</option>`).join("")}</select></td>
+        </tr>`).join("") : '<tr><td colspan="4">No messages yet.</td></tr>';
+      document.querySelector("#stat-messages").textContent = contacts.filter((contact) => contact.status === "new").length;
+    } catch (error) {
+      body.innerHTML = '<tr><td colspan="4">Messages will appear after the commerce database upgrade is activated.</td></tr>';
+      document.querySelector("#stat-messages").textContent = "—";
+    }
   }
 
   async function loadCategories() {
@@ -188,7 +212,10 @@
     form.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  document.querySelectorAll("[data-admin-panel]").forEach((button) => button.addEventListener("click", () => showPanel(button.dataset.adminPanel)));
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-admin-panel]");
+    if (button) showPanel(button.dataset.adminPanel);
+  });
 
   document.querySelector("#product-form").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -240,6 +267,18 @@
     finally { select.disabled = false; }
   });
 
+  document.querySelector("#admin-contacts-body").addEventListener("change", async (event) => {
+    const select = event.target.closest("[data-contact-status]");
+    if (!select) return;
+    select.disabled = true;
+    try {
+      await api.update("contact_messages", { status: select.value }, `id=eq.${encodeURIComponent(select.dataset.contactStatus)}`, { select: false });
+      setMessage("Message status updated.");
+      await loadContacts();
+    } catch (error) { setMessage(error.message, "error"); }
+    finally { select.disabled = false; }
+  });
+
   document.querySelector("#category-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const input = event.currentTarget.elements.name;
@@ -271,7 +310,6 @@
       await api.update("site_settings", {
         announcement: values.get("announcement").trim(),
         whatsapp_number: values.get("whatsapp_number").replace(/\D/g, ""),
-        upi_id: values.get("upi_id").trim(),
         support_email: values.get("support_email").trim().toLowerCase(),
         free_shipping_minimum: Number(values.get("free_shipping_minimum")),
         standard_shipping: Number(values.get("standard_shipping"))
@@ -349,8 +387,10 @@
       if (!await requireAdmin()) return;
       loading.hidden = true;
       dashboard.hidden = false;
+      if (window.TriptiContentAdmin) await window.TriptiContentAdmin.initialize();
+      if (window.TriptiCouponAdmin) await window.TriptiCouponAdmin.initialize();
       showPanel("overview");
-      await Promise.all([loadProducts(), loadOrders(), loadCustomers(), loadCategories(), loadSettings(), loadBanners()]);
+      await Promise.all([loadProducts(), loadOrders(), loadCustomers(), loadContacts(), loadCategories(), loadSettings(), loadBanners()]);
     } catch (error) {
       loading.hidden = true;
       denied.hidden = false;

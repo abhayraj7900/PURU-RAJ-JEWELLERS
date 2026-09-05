@@ -209,6 +209,17 @@
     return fetchJson(`/rest/v1/rpc/${encodeURIComponent(name)}`, { method: "POST", body });
   }
 
+  async function invokeFunction(name, body, options = {}) {
+    const active = await getSession();
+    if (options.authenticated !== false && !active) throw new Error("Please sign in again.");
+    return fetchJson(`/functions/v1/${encodeURIComponent(name)}`, {
+      method: "POST",
+      token: active?.access_token || false,
+      body,
+      timeout: options.timeout || 30000
+    });
+  }
+
   async function uploadPublic(bucket, path, file) {
     const active = await getSession();
     if (!active) throw new Error("Please sign in again.");
@@ -250,6 +261,7 @@
     update,
     remove,
     rpc,
+    invokeFunction,
     uploadPublic,
     onAuthChange(listener) { listeners.add(listener); return () => listeners.delete(listener); }
   });

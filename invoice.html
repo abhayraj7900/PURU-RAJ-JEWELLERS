@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Invoice | Tripti Jewellers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="invoice" class="invoice-body">
+  <header class="account-header print-hidden"><div class="container"><a class="brand" href="index.html" aria-label="Tripti Jewellers home"><span class="brand-mark brand-mark-image"><img src="images/tripti-tj-monogram-transparent.png" alt=""></span><span class="brand-type"><strong>Tripti</strong><small>Jewellers</small></span></a><div class="account-header-links"><a href="account.html">My account</a><a href="shop.html">Shop</a></div></div></header>
+  <main class="invoice-main">
+    <div id="invoice-loading" class="dashboard-loading" role="status"><span></span><p>Preparing your invoice…</p></div>
+    <div id="invoice-error" class="dashboard-error container" role="alert" hidden></div>
+    <article id="invoice-document" class="invoice-document" hidden>
+      <header class="invoice-heading"><div><p class="invoice-brand">Tripti Jewellers</p><p>Timeless beauty, lasting trust</p></div><div><p class="eyebrow">Order invoice</p><h1 id="invoice-number"></h1></div></header>
+      <section class="invoice-meta"><div><span>Order number</span><strong id="invoice-order-number"></strong></div><div><span>Invoice date</span><strong id="invoice-date"></strong></div><div><span>Payment</span><strong id="invoice-payment"></strong></div><div><span>Order status</span><strong id="invoice-order-status"></strong></div></section>
+      <section class="invoice-address"><p class="eyebrow">Billed and shipped to</p><h2 id="invoice-customer"></h2><p id="invoice-address"></p><p id="invoice-contact"></p></section>
+      <div class="invoice-table-wrap"><table class="invoice-table"><thead><tr><th>Jewellery</th><th>Price</th><th>Qty</th><th>Amount</th></tr></thead><tbody id="invoice-items"></tbody></table></div>
+      <section class="invoice-totals"><div><span>Subtotal</span><strong id="invoice-subtotal"></strong></div><div><span>Shipping</span><strong id="invoice-shipping"></strong></div><div class="invoice-grand-total"><span>Total</span><strong id="invoice-total"></strong></div></section>
+      <footer class="invoice-footer"><p>Thank you for choosing Tripti Jewellers.</p><p>This computer-generated invoice does not require a signature.</p></footer>
+    </article>
+    <div id="invoice-actions" class="invoice-actions print-hidden" hidden><a class="button button-outline" href="account.html">Back to My Account</a><button id="print-invoice" class="button button-gold" type="button">Print / Save PDF</button></div>
+  </main>
+  <script src="js/supabase-client.js"></script><script src="js/invoice.js"></script>
+</body>
+</html>

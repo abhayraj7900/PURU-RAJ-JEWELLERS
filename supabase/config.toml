@@ -1,0 +1,6 @@
+[functions.commerce]
+verify_jwt = true
+
+[functions.contact-message]
+verify_jwt = false
+

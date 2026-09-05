@@ -1,12 +1,11 @@
 /* ================================================================
    TRIPTI JEWELLERS — MAIN JAVASCRIPT
-   Cart, catalogue, navigation and WhatsApp checkout live here.
+   Cart, catalogue, navigation and secure checkout live here.
    ================================================================ */
 
 // Replace these two placeholders before launch.
 const STORE_CONFIG = {
   whatsappNumber: "919999999999", // Country code + number, without + or spaces.
-  upiId: "thetriptiedit@upi",
   supportEmail: "triptijewellers4826@gmail.com",
   freeShippingMinimum: 999,
   standardShipping: 79
@@ -15,6 +14,8 @@ const STORE_CONFIG = {
 const CART_KEY = "theTriptiEditCart";
 const WISHLIST_KEY = "triptiJewellersWishlist";
 let PRODUCTS = window.PRODUCTS || [];
+let cartSyncTimer = null;
+let cartSyncReady = false;
 
 document.addEventListener("DOMContentLoaded", async () => {
   window.TriptiSupabase?.consumeAuthHash();
@@ -30,6 +31,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   await loadRemoteStoreData();
+  await syncCartForSignedInUser();
   setupStoreDetails();
 
   const page = document.body.dataset.page;
@@ -39,6 +41,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (page === "cart") renderCart();
   if (page === "watchlist" || page === "wishlist") renderWishlist();
   if (page === "contact") setupContactForm();
+  if (window.TriptiContent) await window.TriptiContent.initializePublic();
   syncWishlistForSignedInUser();
 });
 
@@ -64,9 +67,62 @@ function getCart() {
   }
 }
 
-function saveCart(cart) {
+function saveCart(cart, options = {}) {
   localStorage.setItem(CART_KEY, JSON.stringify(cart));
   updateCartCount();
+  if (options.sync !== false) scheduleCartSync(cart);
+}
+
+function scheduleCartSync(cart) {
+  if (!cartSyncReady || !window.TriptiSupabase) return;
+  window.clearTimeout(cartSyncTimer);
+  cartSyncTimer = window.setTimeout(async () => {
+    try {
+      const user = await window.TriptiSupabase.getUser();
+      if (!user) return;
+      await window.TriptiSupabase.rpc("replace_cart", {
+        p_items: cart.map((item) => ({ id: item.id, quantity: item.quantity, size: item.size || "" }))
+      });
+    } catch (error) {
+      console.warn("Shopping bag sync is not ready:", error.message);
+    }
+  }, 350);
+}
+
+async function syncCartForSignedInUser() {
+  const api = window.TriptiSupabase;
+  if (!api) {
+    cartSyncReady = true;
+    return;
+  }
+  const user = await api.getUser();
+  if (!user) {
+    cartSyncReady = true;
+    return;
+  }
+  try {
+    const rows = await api.select("cart_items", `select=product_id,quantity,size&user_id=eq.${encodeURIComponent(user.id)}&order=updated_at.asc`);
+    const merged = new Map();
+    rows.forEach((item) => merged.set(`${item.product_id}:${item.size || ""}`, {
+      id: Number(item.product_id), quantity: Number(item.quantity), size: item.size || ""
+    }));
+    getCart().forEach((item) => {
+      const key = `${item.id}:${item.size || ""}`;
+      const existing = merged.get(key);
+      merged.set(key, {
+        id: Number(item.id),
+        quantity: Math.min(10, Math.max(Number(item.quantity) || 1, Number(existing?.quantity) || 0)),
+        size: item.size || ""
+      });
+    });
+    const cart = [...merged.values()].filter((item) => getProduct(item.id));
+    saveCart(cart, { sync: false });
+    cartSyncReady = true;
+    await api.rpc("replace_cart", { p_items: cart });
+  } catch (error) {
+    cartSyncReady = true;
+    console.warn("Shopping bag sync is not ready:", error.message);
+  }
 }
 
 function getWishlist() {
@@ -133,7 +189,6 @@ async function loadRemoteStoreData() {
   if (settingsResult.status === "fulfilled" && settingsResult.value[0]) {
     const settings = settingsResult.value[0];
     STORE_CONFIG.whatsappNumber = settings.whatsapp_number || STORE_CONFIG.whatsappNumber;
-    STORE_CONFIG.upiId = settings.upi_id || STORE_CONFIG.upiId;
     STORE_CONFIG.supportEmail = settings.support_email || STORE_CONFIG.supportEmail;
     STORE_CONFIG.freeShippingMinimum = Number(settings.free_shipping_minimum ?? STORE_CONFIG.freeShippingMinimum);
     STORE_CONFIG.standardShipping = Number(settings.standard_shipping ?? STORE_CONFIG.standardShipping);
@@ -202,9 +257,6 @@ function setupStoreDetails() {
     link.href = `https://wa.me/${STORE_CONFIG.whatsappNumber}?text=${greeting}`;
     link.target = "_blank";
     link.rel = "noopener";
-  });
-  document.querySelectorAll("[data-upi-id]").forEach((item) => {
-    item.textContent = STORE_CONFIG.upiId;
   });
   document.querySelectorAll("a[href^='mailto:']").forEach((link) => {
     link.href = `mailto:${STORE_CONFIG.supportEmail}`;
@@ -536,6 +588,7 @@ function renderCart() {
   list.onclick = handleCartClick;
   list.onchange = handleCartInput;
   setupCheckoutForm(cart, totals);
+  window.TriptiCheckout?.renderCoupon(cart, summary);
 }
 
 function handleCartClick(event) {
@@ -569,19 +622,46 @@ function handleCartInput(event) {
   renderCart();
 }
 
+let razorpayCheckoutPromise = null;
+
+function loadRazorpayCheckout() {
+  if (window.Razorpay) return Promise.resolve();
+  if (razorpayCheckoutPromise) return razorpayCheckoutPromise;
+  razorpayCheckoutPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error("Secure payment window could not load. Please try again."));
+    document.head.appendChild(script);
+  });
+  return razorpayCheckoutPromise;
+}
+
+function setCheckoutStatus(form, text, type = "info") {
+  const status = form.querySelector("#checkout-status");
+  if (!status) return;
+  status.textContent = text;
+  status.dataset.type = type;
+  status.hidden = !text;
+}
+
 function setupCheckoutForm(cart, totals) {
   const form = document.querySelector("#checkout-form");
   if (!form) return;
   const savedDraft = JSON.parse(localStorage.getItem("triptiCheckoutDraft") || "null");
   if (savedDraft) {
-    ["name", "phone", "address"].forEach((key) => { if (savedDraft[key] && form.elements[key]) form.elements[key].value = savedDraft[key]; });
+    ["name", "phone", "address", "city", "state", "pincode"].forEach((key) => {
+      if (savedDraft[key] && form.elements[key]) form.elements[key].value = savedDraft[key];
+    });
   }
   prefillCheckoutFromAccount(form);
   form.onsubmit = async (event) => {
     event.preventDefault();
     if (!form.reportValidity()) return;
     const data = new FormData(form);
-    const draft = { name: data.get("name"), phone: data.get("phone"), address: data.get("address") };
+    const paymentMethod = String(data.get("payment_method"));
+    const draft = Object.fromEntries(["name", "phone", "address", "city", "state", "pincode"].map((key) => [key, String(data.get(key) || "")]));
     localStorage.setItem("triptiCheckoutDraft", JSON.stringify(draft));
     const api = window.TriptiSupabase;
     const user = api ? await api.getUser() : null;
@@ -589,37 +669,110 @@ function setupCheckoutForm(cart, totals) {
       window.location.href = "login.html?returnTo=cart.html";
       return;
     }
+
     const submitButton = form.querySelector("button[type='submit']");
     const originalLabel = submitButton.textContent;
+    const couponCode = window.TriptiCheckout?.couponCode() || "";
+    const cartFingerprint = JSON.stringify({ user: user.id, draft, paymentMethod, couponCode, items: cart.map((item) => [item.id, item.quantity, item.size || ""]) });
     submitButton.disabled = true;
     submitButton.textContent = "Creating your order…";
+    setCheckoutStatus(form, "");
     try {
-      const order = await api.rpc("place_order", {
-        p_customer_name: String(data.get("name")),
-        p_phone: String(data.get("phone")),
-        p_address: String(data.get("address")),
-        p_payment_method: "To be confirmed on WhatsApp",
-        p_items: cart.map((item) => ({ id: item.id, quantity: item.quantity, size: item.size || "" }))
+      let order = null;
+      const pending = JSON.parse(localStorage.getItem("triptiPendingPayment") || "null");
+      if (paymentMethod === "Razorpay" && pending?.fingerprint === cartFingerprint) order = pending.order;
+      if (!order) {
+        const orderPayload = {
+          p_customer_name: draft.name,
+          p_phone: draft.phone,
+          p_address: draft.address,
+          p_city: draft.city,
+          p_state: draft.state,
+          p_pincode: draft.pincode,
+          p_payment_method: paymentMethod,
+          p_coupon_code: couponCode,
+          p_items: cart.map((item) => ({ id: item.id, quantity: item.quantity, size: item.size || "" }))
+        };
+        try {
+          order = await api.rpc("place_order_v3", orderPayload);
+        } catch (error) {
+          if (error.status !== 404 || couponCode) throw error;
+          // Keep the existing order channel usable while the database upgrade is activated.
+          order = await api.rpc("place_order", {
+            p_customer_name: draft.name,
+            p_phone: draft.phone,
+            p_address: [draft.address, draft.city, draft.state, draft.pincode].join(", "),
+            p_payment_method: "Awaiting store confirmation",
+            p_items: orderPayload.p_items
+          });
+          saveCart([]);
+          localStorage.removeItem("triptiCheckoutDraft");
+          setCheckoutStatus(form, `Order ${order.order_number} saved. Online checkout is being activated; contact the store to confirm payment and delivery.`, "success");
+          const link = document.createElement("a");
+          link.className = "button button-outline";
+          link.href = `account.html?order=${encodeURIComponent(order.id)}`;
+          link.textContent = "View your order";
+          form.append(link);
+          submitButton.textContent = "Order saved";
+          return;
+        }
+        if (paymentMethod === "Razorpay") localStorage.setItem("triptiPendingPayment", JSON.stringify({ fingerprint: cartFingerprint, order }));
+      }
+
+      if (paymentMethod === "Cash on delivery") {
+        submitButton.textContent = "Confirming order…";
+        await api.invokeFunction("commerce", { action: "finalize-cod", order_id: order.id });
+        saveCart([]);
+        localStorage.removeItem("triptiCheckoutDraft");
+        localStorage.removeItem("triptiPendingPayment");
+        setCheckoutStatus(form, `Order ${order.order_number} confirmed. Opening your account…`, "success");
+        window.setTimeout(() => window.location.assign(`account.html?order=${encodeURIComponent(order.id)}`), 700);
+        return;
+      }
+
+      submitButton.textContent = "Opening secure payment…";
+      const payment = await api.invokeFunction("commerce", { action: "create-payment", order_id: order.id });
+      await loadRazorpayCheckout();
+      const checkout = new window.Razorpay({
+        key: payment.key_id,
+        amount: payment.amount,
+        currency: payment.currency,
+        name: "Tripti Jewellers",
+        description: `Order ${order.order_number}`,
+        order_id: payment.order_id,
+        prefill: { name: draft.name, email: user.email, contact: draft.phone },
+        theme: { color: "#6f1025" },
+        modal: {
+          ondismiss() {
+            submitButton.disabled = false;
+            submitButton.textContent = originalLabel;
+            setCheckoutStatus(form, "Payment was not completed. Your order is saved; tap Continue securely to try again.", "error");
+          }
+        },
+        handler: async (result) => {
+          submitButton.textContent = "Verifying payment…";
+          try {
+            await api.invokeFunction("commerce", { action: "verify-payment", order_id: order.id, ...result });
+            saveCart([]);
+            localStorage.removeItem("triptiCheckoutDraft");
+            localStorage.removeItem("triptiPendingPayment");
+            setCheckoutStatus(form, `Payment received. Order ${order.order_number} is confirmed.`, "success");
+            window.setTimeout(() => window.location.assign(`account.html?order=${encodeURIComponent(order.id)}`), 700);
+          } catch (error) {
+            submitButton.disabled = false;
+            submitButton.textContent = originalLabel;
+            setCheckoutStatus(form, error.message, "error");
+          }
+        }
       });
-    const orderLines = cart.map((item) => {
-      const product = getProduct(item.id);
-      const size = item.size ? `, Size ${item.size}` : "";
-      return `• ${product.name}${size} × ${item.quantity} — ${formatPrice(product.price * item.quantity)}`;
-    }).join("\n");
-    const message = [
-      `Hello Tripti Jewellers, I placed order ${order.order_number}:`, "", orderLines, "",
-      `Subtotal: ${formatPrice(order.subtotal)}`,
-      `Shipping: ${Number(order.shipping) === 0 ? "Complimentary" : formatPrice(order.shipping)}`,
-      `Order total: ${formatPrice(order.total)}`, "",
-      `Name: ${data.get("name")}`,
-      `Phone: ${data.get("phone")}`,
-      `Address: ${data.get("address")}`, "",
-      "Preferred payment: Please confirm UPI or Cash on Delivery."
-    ].join("\n");
-      saveCart([]);
-      localStorage.removeItem("triptiCheckoutDraft");
-      window.location.assign(`https://wa.me/${STORE_CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`);
+      checkout.on("payment.failed", (result) => {
+        submitButton.disabled = false;
+        submitButton.textContent = originalLabel;
+        setCheckoutStatus(form, result.error?.description || "Payment failed. Please try again.", "error");
+      });
+      checkout.open();
     } catch (error) {
+      setCheckoutStatus(form, error.message, "error");
       showToast(error.message);
       submitButton.disabled = false;
       submitButton.textContent = originalLabel;
@@ -641,7 +794,12 @@ async function prefillCheckoutFromAccount(form) {
     const address = addresses[0];
     if (profile?.full_name) form.elements.name.value = profile.full_name;
     if (profile?.phone) form.elements.phone.value = profile.phone;
-    if (address) form.elements.address.value = `${address.address_line}, ${address.city}, ${address.state} – ${address.pincode}`;
+    if (address) {
+      form.elements.address.value = address.address_line;
+      form.elements.city.value = address.city;
+      form.elements.state.value = address.state;
+      form.elements.pincode.value = address.pincode;
+    }
   } catch (error) {
     console.warn("Checkout profile could not be loaded:", error.message);
   }
@@ -652,11 +810,36 @@ async function prefillCheckoutFromAccount(form) {
 function setupContactForm() {
   const form = document.querySelector("#contact-form");
   if (!form) return;
-  form.addEventListener("submit", (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!form.reportValidity()) return;
+    const api = window.TriptiSupabase;
+    const status = form.querySelector("#contact-status");
+    const button = form.querySelector("button[type='submit']");
     const data = new FormData(form);
-    const message = `Hello Tripti Jewellers,\n\nMy name is ${data.get("name")} (${data.get("phone")}).\n\n${data.get("message")}`;
-    window.open(`https://wa.me/${STORE_CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`, "_blank", "noopener");
+    button.disabled = true;
+    button.textContent = "Sending…";
+    status.hidden = true;
+    try {
+      if (!api) throw new Error("Contact service could not load. Please refresh and try again.");
+      await api.invokeFunction("contact-message", {
+        name: data.get("name"),
+        email: data.get("email"),
+        phone: data.get("phone"),
+        message: data.get("message"),
+        website: data.get("website")
+      }, { authenticated: false });
+      form.reset();
+      status.textContent = "Thank you. Your message has been saved and our team will contact you soon.";
+      status.dataset.type = "success";
+      status.hidden = false;
+    } catch (error) {
+      status.textContent = error.message;
+      status.dataset.type = "error";
+      status.hidden = false;
+    } finally {
+      button.disabled = false;
+      button.textContent = "Send message";
+    }
   });
 }
