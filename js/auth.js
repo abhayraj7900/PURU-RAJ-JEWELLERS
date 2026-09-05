@@ -70,7 +70,7 @@
       return;
     }
     const session = await api.getSession();
-    if (session) window.location.replace(safeReturnTo());
+    if (session && await api.getUser()) window.location.replace(safeReturnTo());
   }
 
   modeButtons.forEach((button) => button.addEventListener("click", () => setMode(button.dataset.authMode)));

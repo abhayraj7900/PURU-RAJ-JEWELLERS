@@ -127,7 +127,7 @@ h3 { font-size: 1.45rem; }
 .product-price { margin: 0; font-size: .82rem; font-weight: 700; }
 .old-price { margin-left: 4px; color: #8b847b; font-size: .75em; font-weight: 500; text-decoration: line-through; }
 .quick-add { width: 44px; height: 44px; flex: 0 0 auto; background: transparent; border: 1px solid var(--ink); border-radius: 50%; font-size: 1.35rem; cursor: pointer; transition: background .2s, color .2s, transform .2s; }
-.quick-add:hover { background: var(--ink); color: var(--white); transform: rotate(90deg); }
+.quick-add:hover { background: var(--ink); color: var(--white); transform: none; }
 .quick-add:disabled, .button:disabled { opacity: .55; cursor: not-allowed; transform: none; }
 .wishlist-toggle { position: absolute; z-index: 3; top: 10px; right: 10px; width: 42px; height: 42px; display: grid; place-items: center; padding: 0; background: rgba(255, 253, 251, .94); color: var(--burgundy); border: 1px solid rgba(90, 16, 34, .18); border-radius: 50%; box-shadow: 0 6px 20px rgba(35, 25, 27, .12); font-family: var(--display); font-size: 1.45rem; line-height: 1; cursor: pointer; transition: transform .2s, background-color .2s, color .2s; }
 .wishlist-toggle:hover { transform: translateY(-2px); }
