@@ -387,8 +387,15 @@
       if (!await requireAdmin()) return;
       loading.hidden = true;
       dashboard.hidden = false;
+      const detailField = document.querySelector('[name="details"]');
+      if (detailField) {
+        const hint = document.createElement('p'); hint.className = 'form-note';
+        hint.textContent = 'Jewellery detail fields: enter one per line, e.g. Purity: 22K, Metal: Gold, Colour: Yellow, Weight: 5.573 g, SKU: TJ-001, Size guide: your sizing instructions. For price breakup enter Metal value:, Stone value:, Making charges:, Tax: with numeric rupee amounts. All four amounts must add up to the product price. Use actual product data. Sizes remain in the Sizes field, including units (e.g. 16.40 mm).';
+        detailField.after(hint);
+      }
       if (window.TriptiContentAdmin) await window.TriptiContentAdmin.initialize();
       if (window.TriptiCouponAdmin) await window.TriptiCouponAdmin.initialize();
+      if (window.TriptiRatesAdmin) await window.TriptiRatesAdmin.initialize();
       showPanel("overview");
       await Promise.all([loadProducts(), loadOrders(), loadCustomers(), loadContacts(), loadCategories(), loadSettings(), loadBanners()]);
     } catch (error) {

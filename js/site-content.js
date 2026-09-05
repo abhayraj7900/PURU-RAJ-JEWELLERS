@@ -161,6 +161,8 @@
     const product = document.querySelector(".product-info .delivery-note");
     if(target) target.innerHTML=deliveryWidget();
     if(product) product.outerHTML=deliveryWidget();
+    const bag = document.querySelector('#cart-items');
+    if (bag && !document.querySelector('#bag-delivery')) { const block = document.createElement('div'); block.id = 'bag-delivery'; block.innerHTML = deliveryWidget(); bag.before(block); }
     document.querySelectorAll("[data-delivery-check]").forEach(form=>form.addEventListener("submit",e=>{
       e.preventDefault();const pin=form.elements.pincode.value.trim();const result=deliveryResult(pin);const box=form.querySelector(".delivery-result");box.textContent=result.message;box.dataset.type=result.type;box.hidden=false;
     }));

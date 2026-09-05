@@ -49,6 +49,10 @@
    const shipping=subtotal>=STORE_CONFIG.freeShippingMinimum?0:STORE_CONFIG.standardShipping;
    if(applied){const row=document.createElement('div');row.className='summary-row coupon-discount';row.innerHTML=`<span>Coupon discount</span><strong>− ${money(applied.discount)}</strong>`;summary.querySelector('.summary-total').before(row);badge.innerHTML=`<div><strong>✓ ${esc(applied.code)}</strong><small>You save ${money(applied.discount)}</small></div><button type="button">Remove</button>`;badge.hidden=false;badge.querySelector('button').onclick=()=>{applied=null;couponForm.reset();status.hidden=true;updateTotals();};}else badge.hidden=true;
    summary.querySelector('.summary-total strong').textContent=money(subtotal+shipping-(applied?.discount||0));
+   const sticky=document.querySelector('[data-sticky-total]');if(sticky)sticky.textContent=money(subtotal+shipping-(applied?.discount||0));
+   summary.querySelector('.total-savings')?.remove();
+   const saving=cart.reduce((sum,item)=>{const p=getProduct(item.id);return sum+Math.max(0,(p.oldPrice||p.price)-p.price)*item.quantity;},0)+(applied?.discount||0);
+   if(saving>0){const row=document.createElement('div');row.className='summary-row total-savings';row.innerHTML=`<span>You save</span><strong>${money(saving)}</strong>`;summary.append(row);}
   }
   async function apply(code){
    const button=couponForm.querySelector('button');button.disabled=true;status.hidden=false;status.textContent='Checking coupon…';

@@ -154,6 +154,17 @@
     }
   }
 
+  async function requestPhoneOtp(phone) {
+    if (!/^\+91[6-9][0-9]{9}$/.test(phone)) throw new Error('Enter a valid Indian mobile number.');
+    return fetchJson('/auth/v1/otp', { method: 'POST', token: false, body: { phone, create_user: true, channel: 'sms' } }, false);
+  }
+  async function verifyPhoneOtp(phone, token) {
+    if (!/^\d{6}$/.test(token)) throw new Error('Enter the 6-digit OTP.');
+    const result = await fetchJson('/auth/v1/verify', { method: 'POST', token: false, body: { phone, token, type: 'sms' } }, false);
+    if (!result?.access_token) throw new Error('Verification did not complete. Please retry.');
+    return saveSession(result);
+  }
+
   async function sendPasswordReset(email, redirectTo) {
     return fetchJson(`/auth/v1/recover?redirect_to=${encodeURIComponent(redirectTo)}`, {
       method: "POST",
@@ -253,6 +264,8 @@
     consumeAuthHash,
     signUp,
     signIn,
+    requestPhoneOtp,
+    verifyPhoneOtp,
     signOut,
     sendPasswordReset,
     updatePassword,

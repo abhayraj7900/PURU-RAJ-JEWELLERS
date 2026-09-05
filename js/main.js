@@ -3,6 +3,13 @@
    Cart, catalogue, navigation and secure checkout live here.
    ================================================================ */
 
+// Shared header rate strip, loaded on storefront pages only.
+if (document.querySelector('.site-header') && !window.TriptiRates) {
+  const ratesScript = document.createElement('script');
+  ratesScript.src = 'js/market-rates.js';
+  document.head.append(ratesScript);
+}
+
 // Replace these two placeholders before launch.
 const STORE_CONFIG = {
   whatsappNumber: "919999999999", // Country code + number, without + or spaces.
@@ -13,6 +20,7 @@ const STORE_CONFIG = {
 
 const CART_KEY = "theTriptiEditCart";
 const WISHLIST_KEY = "triptiJewellersWishlist";
+let wishlistUserId = null;
 let PRODUCTS = window.PRODUCTS || [];
 let cartSyncTimer = null;
 let cartSyncReady = false;
@@ -33,6 +41,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadRemoteStoreData();
   await syncCartForSignedInUser();
   setupStoreDetails();
+  await syncWishlistForSignedInUser();
 
   const page = document.body.dataset.page;
   if (page === "home") renderFeaturedProducts();
@@ -42,7 +51,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (page === "watchlist" || page === "wishlist") renderWishlist();
   if (page === "contact") setupContactForm();
   if (window.TriptiContent) await window.TriptiContent.initializePublic();
-  syncWishlistForSignedInUser();
+  setupSupportPanel();
 });
 
 /* ---------- Shared helpers ---------- */
@@ -126,8 +135,9 @@ async function syncCartForSignedInUser() {
 }
 
 function getWishlist() {
+  if (!wishlistUserId) return [];
   try {
-    const saved = JSON.parse(localStorage.getItem(WISHLIST_KEY));
+    const saved = JSON.parse(localStorage.getItem(`${WISHLIST_KEY}:${wishlistUserId}`));
     return Array.isArray(saved) ? [...new Set(saved.map(Number).filter(Number.isInteger))] : [];
   } catch (error) {
     return [];
@@ -135,7 +145,8 @@ function getWishlist() {
 }
 
 function saveWishlist(wishlist) {
-  localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist));
+  if (!wishlistUserId) return;
+  localStorage.setItem(`${WISHLIST_KEY}:${wishlistUserId}`, JSON.stringify(wishlist));
   updateWishlistCount();
 }
 
@@ -264,6 +275,15 @@ function setupStoreDetails() {
   });
 }
 
+function setupSupportPanel() {
+  const launcher=document.querySelector('.whatsapp-float');if(!launcher)return;
+  launcher.setAttribute('aria-label','Open Tripti customer support');launcher.querySelector('span').textContent='Chat';
+  const dialog=document.createElement('dialog');dialog.className='shop-sheet support-sheet';
+  dialog.innerHTML='<form method="dialog"><button class="sheet-close" aria-label="Close support">×</button></form><h2>Tripti support</h2><p>Our jewellery team can help with products and orders. Continue on WhatsApp to send your enquiry.</p><form id="support-enquiry"><label>Name<input name="name" autocomplete="name" maxlength="100" required></label><label>Mobile<input name="phone" autocomplete="tel" type="tel" pattern="[0-9+ ]{10,15}" required></label><label>Email (optional)<input name="email" autocomplete="email" type="email"></label><label>How can we help?<textarea name="message" maxlength="1000" required></textarea></label><p class="form-note">These details will be included in your WhatsApp message. No AI chat or instant-response guarantee.</p><button class="button button-dark" type="submit">Continue on WhatsApp</button><p role="status"></p></form>';document.body.append(dialog);
+  launcher.onclick=e=>{e.preventDefault();dialog.showModal();};
+  dialog.querySelector('#support-enquiry').onsubmit=async e=>{e.preventDefault();const form=e.target,content=await window.TriptiContent.load();const number=(content.whatsapp||STORE_CONFIG.whatsappNumber||'').replace(/\D/g,'');if(!/^[1-9][0-9]{9,14}$/.test(number)||number==='919999999999'){form.querySelector('[role=status]').textContent='WhatsApp number is not configured yet. Please use the Contact page.';return;}const data=new FormData(form);const message=`Hello Tripti Jewellers\nName: ${data.get('name')}\nMobile: ${data.get('phone')}\nEmail: ${data.get('email')}\n${data.get('message')}\nPage: ${location.href}`;location.href=`https://wa.me/${number}?text=${encodeURIComponent(message)}`;};
+}
+
 async function updateAccountLinks() {
   const api = window.TriptiSupabase;
   const session = api ? await api.getSession({ refresh: false }) : null;
@@ -296,13 +316,14 @@ function productCard(product) {
         <img src="${escapeHTML(product.image)}" alt="${escapeHTML(product.imageAlt)}" loading="lazy" style="object-position: ${escapeHTML(product.imagePosition || "center")}">
         ${product.badge ? `<span class="product-badge">${escapeHTML(product.badge)}</span>` : ""}
         ${inStock ? "" : '<span class="stock-badge">Out of stock</span>'}
+        ${product.stock === 1 ? '<span class="last-piece">Only 1 left!</span>' : ''}
       </a>
       <div class="product-card-body">
         <p class="product-category">${escapeHTML(product.category)}</p>
         <h3><a href="product.html?id=${product.id}">${name}</a></h3>
         <div class="product-card-footer">
           <p class="product-price">${formatPrice(product.price)} ${oldPrice}</p>
-          <button class="quick-add" type="button" data-add-to-cart="${product.id}" aria-label="${inStock ? `Add ${name} to bag` : `${name} is out of stock`}" ${inStock ? "" : "disabled"}>${inStock ? "+" : "×"}</button>
+          <button class="quick-add" type="button" data-add-to-cart="${product.id}" aria-label="${inStock ? `Add ${name} to bag` : `${name} is out of stock`}" ${inStock ? "" : "disabled"}>${inStock ? "Add to bag" : "Out of stock"}</button>
         </div>
       </div>
     </article>`;
@@ -323,6 +344,16 @@ function setupShop() {
   const requestedCategory = new URLSearchParams(window.location.search).get("category");
   const searchQuery = (new URLSearchParams(window.location.search).get("search") || "").trim().toLowerCase();
   let activeCategory = categories.includes(requestedCategory) ? requestedCategory : "All";
+  let sortMode='match', appliedFilters={};
+  const facets={'Jewellery Type':'type','Brand':'brand','Gender':'gender','Karatage':'purity','Occasion':'occasion','Metal':'metal','Diamond Clarity':'clarity','Collection':'collection','Community':'community','Form':'form','Type':'type','Metal Colour':'colour','Width':'width'};
+  const toolbar=document.createElement('div');toolbar.className='shopping-tools';toolbar.innerHTML='<button type="button" data-filter-open>☷ Filter by</button><button type="button" data-sort-open>↕ Sort by</button>';filters.before(toolbar);
+  const filterDialog=document.createElement('dialog');filterDialog.className='shop-sheet';
+  filterDialog.innerHTML=`<form method="dialog"><button class="sheet-close" aria-label="Close filters">×</button></form><h2>Filter By</h2><form id="facet-form"><details open><summary>Price</summary><label>Minimum ₹<input type="number" name="min" min="0"></label><label>Maximum ₹<input type="number" name="max" min="0"></label></details>${Object.entries(facets).map(([label,key])=>{const values=[...new Set(PRODUCTS.map(p=>key==='brand'?(jewellerySpecs(p)[key]||'Tripti Jewellers'):jewellerySpecs(p)[key]).filter(Boolean))];return `<details><summary>${label}</summary>${values.length?values.map(v=>`<label><input type="checkbox" name="${key}" value="${escapeHTML(v)}"> ${escapeHTML(v)}</label>`).join(''):'<p>Details have not been added to the catalogue yet.</p>'}</details>`;}).join('')}<div class="sheet-actions"><button type="button" data-clear>Clear filters</button><button type="submit" class="button button-dark">Show results</button></div></form>`;
+  const sortDialog=document.createElement('dialog');sortDialog.className='shop-sheet';sortDialog.innerHTML='<form method="dialog"><button class="sheet-close" aria-label="Close sorting">×</button></form><h2>Sort By</h2>'+[['match','Best matches'],['best','Best sellers'],['new','New arrivals'],['recommended','Recommendations'],['low','Price: low to high'],['high','Price: high to low']].map(([v,label])=>`<button class="sort-option" type="button" data-sort="${v}">${label}</button>`).join('');document.body.append(filterDialog,sortDialog);
+  toolbar.querySelector('[data-filter-open]').onclick=()=>filterDialog.showModal();toolbar.querySelector('[data-sort-open]').onclick=()=>sortDialog.showModal();
+  const facetForm=filterDialog.querySelector('#facet-form');facetForm.onsubmit=e=>{e.preventDefault();const data=new FormData(facetForm);if(data.get('min')&&data.get('max')&&Number(data.get('min'))>Number(data.get('max'))){showToast('Minimum price must not exceed maximum price');return;}appliedFilters={};for(const key of new Set(data.keys()))appliedFilters[key]=data.getAll(key);filterDialog.close();renderFilteredProducts();};
+  filterDialog.querySelector('[data-clear]').onclick=()=>{facetForm.reset();appliedFilters={};renderFilteredProducts();};
+  sortDialog.onclick=e=>{const b=e.target.closest('[data-sort]');if(!b)return;sortMode=b.dataset.sort;sortDialog.close();toolbar.querySelector('[data-sort-open]').textContent='↕ '+b.textContent;renderFilteredProducts();};
 
   filters.innerHTML = categories.map((category) => `
     <button class="filter-button ${category === activeCategory ? "is-active" : ""}" type="button" data-category="${category}">${category}</button>
@@ -333,6 +364,8 @@ function setupShop() {
     if (searchQuery) {
       visible = visible.filter((product) => `${product.name} ${product.category} ${product.description}`.toLowerCase().includes(searchQuery));
     }
+    visible=visible.filter(p=>Object.entries(appliedFilters).every(([key,values])=>key==='min'?!values[0]||p.price>=Number(values[0]):key==='max'?!values[0]||p.price<=Number(values[0]):values.includes(jewellerySpecs(p)[key]||(key==='brand'?'Tripti Jewellers':''))));
+    visible=[...visible].sort((a,b)=>sortMode==='low'?a.price-b.price:sortMode==='high'?b.price-a.price:sortMode==='best'?Number(/bestseller/i.test(b.badge))-Number(/bestseller/i.test(a.badge)):sortMode==='new'?Number(/new/i.test(b.badge))-Number(/new/i.test(a.badge)):sortMode==='recommended'?Number(b.featured)-Number(a.featured):0);
     container.innerHTML = visible.map(productCard).join("");
     document.querySelector("#product-count").textContent = `${visible.length} ${visible.length === 1 ? "design" : "designs"}${searchQuery ? ` for “${searchQuery}”` : ""}`;
     document.querySelector("#shop-empty").hidden = visible.length > 0;
@@ -350,6 +383,31 @@ function setupShop() {
 }
 
 /* ---------- Dynamic product details ---------- */
+
+function jewellerySpecs(product) {
+  const specs = {};
+  (product.details || []).forEach(line => { const at = line.indexOf(':'); if (at > 0) specs[line.slice(0, at).trim().toLowerCase()] = line.slice(at + 1).trim(); });
+  return specs;
+}
+
+function jewelleryPanels(product) {
+  const s = jewellerySpecs(product);
+  const rows = [['Purity', s.purity], ['Material colour', s.colour], ['Gross weight', s.weight], ['Metal', s.metal], ['Size', product.sizes?.join(', ')]];
+  const amounts = ['metal value', 'stone value', 'making charges', 'tax'].map(key => ({ key, value: Number(s[key]) }));
+  const hasBreakup = amounts.every(x => Number.isFinite(x.value) && x.value >= 0) && Math.abs(amounts.reduce((a, x) => a + x.value, 0) - product.price) < 0.01;
+  return `<section class="jewellery-panels"><h2>Jewellery details</h2><div class="jewellery-switch" role="group" aria-label="Jewellery information"><button type="button" data-jewel-panel="specs" aria-pressed="true">Product details</button><button type="button" data-jewel-panel="price" aria-pressed="false">Price breakup</button></div><div id="jewel-specs"><details open><summary>Metal details</summary><dl class="metal-grid">${rows.map(([key, value]) => `<div><dt>${escapeHTML(key)}</dt><dd>${escapeHTML(value || 'Not specified')}</dd></div>`).join('')}</dl></details><details><summary>General details</summary><p>SKU: ${escapeHTML(s.sku || 'TJ-' + product.id)}</p><p>Category: ${escapeHTML(product.category)}</p>${(product.details || []).filter(x => !x.includes(':')).map(x => `<p>${escapeHTML(x)}</p>`).join('')}</details><details><summary>Description</summary><p>${escapeHTML(product.description)}</p></details></div><div id="jewel-price" hidden>${hasBreakup ? amounts.map(x => `<div class="summary-row"><span>${escapeHTML(x.key)}</span><strong>${formatPrice(x.value)}</strong></div>`).join('') : '<p>Detailed price breakup is available on request. Contact us for metal, stone, making-charge and tax details.</p>'}<div class="summary-row summary-total"><span>Product price</span><strong>${formatPrice(product.price)}</strong></div></div></section>`;
+}
+
+function openWishlistLogin() {
+  let dialog = document.querySelector('#wishlist-login');
+  if (!dialog) {
+    dialog = document.createElement('dialog'); dialog.id = 'wishlist-login'; dialog.className = 'wishlist-login';
+    dialog.innerHTML = '<form method="dialog"><button class="login-dismiss" aria-label="Close wishlist login">×</button></form><div class="wishlist-invite"><img src="images/tripti-watchlist-heart.png" alt=""><h2>Your favourites, kept for you</h2><p>Sign in to save your jewellery in your personal wishlist and find it on your other devices.</p></div><div class="wishlist-login-actions"><h3>Unlock your wishlist</h3><p>Use your email or Gmail address to sign in or create an account.</p><a class="button button-gold button-full" href="login.html?returnTo=watchlist.html">Continue with email</a><p class="form-note">Phone OTP is not available yet.</p><a href="information.html?page=privacy">Privacy notice</a> · <a href="information.html?page=terms">Terms of use</a></div>';
+    document.body.append(dialog);
+    dialog.addEventListener('close', () => { if (['watchlist', 'wishlist'].includes(document.body.dataset.page)) { const empty = document.querySelector('#wishlist-empty'); empty.hidden = false; empty.innerHTML = '<h2>Your personal wishlist</h2><p>Sign in to view your saved jewellery.</p><a class="button button-gold" href="login.html?returnTo=watchlist.html">Sign in / Create account</a>'; } });
+  }
+  if (!dialog.open) dialog.showModal();
+}
 
 function renderProductPage() {
   const container = document.querySelector("#product-detail");
@@ -384,19 +442,29 @@ function renderProductPage() {
         <h1>${escapeHTML(product.name)}</h1>
         <p class="detail-price">${formatPrice(product.price)} ${oldPrice}</p>
         <p class="tax-note">Inclusive of all taxes</p>
-        <p class="product-description">${escapeHTML(product.description)}</p>
+        <p class="cart-meta">SKU: ${escapeHTML(jewellerySpecs(product).sku || 'TJ-' + product.id)}</p>
+        ${product.stock === 1 ? '<p class="product-stock-note">Only 1 left!</p>' : ''}
+        <div class="metal-highlight">${escapeHTML(jewellerySpecs(product).purity || 'Purity: see product details')} · ${escapeHTML(jewellerySpecs(product).weight || 'Weight: not specified')}</div>
         ${sizeField}
+        ${jewellerySpecs(product).weight ? `<div class="field-group"><label for="product-weight">Weight</label><select id="product-weight" aria-describedby="weight-note"><option>${escapeHTML(jewellerySpecs(product).weight)}</option></select><small id="weight-note">Weight of this design; other weights are separate products.</small></div>` : ''}
+        <details class="size-guide"><summary>Doubtful about the size? View size guide</summary><p>${escapeHTML(jewellerySpecs(product)['size guide'] || 'Contact us to confirm sizing before ordering. Sizes are shown exactly as entered for this product; do not assume a unit.')}</p><a href="contact.html">Get sizing help →</a></details>
         <div class="purchase-row"><div class="quantity-control" aria-label="Choose quantity"><button type="button" data-product-qty="minus" aria-label="Decrease quantity">−</button><input id="product-quantity" type="number" min="1" max="${Math.min(10, product.stock || 10)}" value="1" aria-label="Quantity"><button type="button" data-product-qty="plus" aria-label="Increase quantity">+</button></div><button class="button button-gold" type="button" data-detail-add="${product.id}" ${inStock ? "" : "disabled"}>${inStock ? "Add to bag" : "Out of stock"}</button></div>
         <button class="wishlist-detail-button ${isSaved ? "is-saved" : ""}" type="button" data-wishlist-toggle="${product.id}" aria-pressed="${isSaved}" aria-label="${isSaved ? "Remove" : "Add"} ${product.name} ${isSaved ? "from" : "to"} watchlist"><span data-wishlist-icon aria-hidden="true">${isSaved ? "♥" : "♡"}</span><span data-wishlist-text>${isSaved ? "Saved to watchlist" : "Save to watchlist"}</span></button>
         <div class="delivery-note"><span>✦</span><div><strong>Complimentary shipping above ₹999</strong><p>Usually dispatched within 2–3 working days.</p></div></div>
-        <details class="detail-accordion" open><summary>Product details</summary><ul>${product.details.map((detail) => `<li>${escapeHTML(detail)}</li>`).join("")}</ul></details>
-        <details class="detail-accordion"><summary>Shipping & returns</summary><p>Estimated delivery is 4–8 working days. Contact us within 3 days for damaged or incorrect items.</p></details>
+        ${jewelleryPanels(product)}
       </div>
     </section>`;
 
   const related = PRODUCTS.filter((item) => item.category === product.category && item.id !== product.id).slice(0, 3);
   document.querySelector("#related-products").innerHTML = related.map(productCard).join("");
   setupProductQuantity();
+  const share=document.createElement('button');share.type='button';share.className='button button-outline';share.textContent='Share design ↗';container.querySelector('.product-info h1').after(share);
+  share.onclick=async()=>{const url=`https://triptijewllers.vercel.app/product.html?id=${product.id}`,text=`${product.name} — ${formatPrice(product.price)} | Tripti Jewellers`;try{if(navigator.share)await navigator.share({title:product.name,text,url});else{await navigator.clipboard.writeText(text+'\n'+url);showToast('Product details and link copied');}}catch(e){if(e.name!=='AbortError')showToast('Could not share. Copy the page link from your browser.');}};
+  container.querySelectorAll('[data-jewel-panel]').forEach(button => button.onclick = () => {
+    container.querySelectorAll('[data-jewel-panel]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+    container.querySelector('#jewel-specs').hidden = button.dataset.jewelPanel !== 'specs';
+    container.querySelector('#jewel-price').hidden = button.dataset.jewelPanel !== 'price';
+  });
 }
 
 function updateMeta(selector, content) {
@@ -418,11 +486,16 @@ function setupProductQuantity() {
 /* ---------- Cart actions ---------- */
 
 function setupProductActions() {
-  document.addEventListener("click", (event) => {
+  document.addEventListener("click", async (event) => {
     const wishlistButton = event.target.closest("[data-wishlist-toggle]");
     if (wishlistButton) {
       const productId = Number(wishlistButton.dataset.wishlistToggle);
-      const isSaved = toggleWishlist(productId);
+      if (!wishlistUserId) { openWishlistLogin(); return; }
+      wishlistButton.disabled = true;
+      let isSaved;
+      try { isSaved = await toggleWishlist(productId); }
+      catch { showToast('Could not save your wishlist. Please sign in again or retry.'); return; }
+      finally { wishlistButton.disabled = false; }
       const product = getProduct(productId);
       if (["watchlist", "wishlist"].includes(document.body.dataset.page)) renderWishlist();
       else syncWishlistButtons(productId);
@@ -431,7 +504,11 @@ function setupProductActions() {
     }
 
     const quickButton = event.target.closest("[data-add-to-cart]");
-    if (quickButton) addToCart(Number(quickButton.dataset.addToCart), 1);
+    if (quickButton) {
+      const product = getProduct(quickButton.dataset.addToCart);
+      if (product?.sizes?.length) window.location.href = `product.html?id=${product.id}`;
+      else addToCart(Number(quickButton.dataset.addToCart), 1);
+    }
 
     const detailButton = event.target.closest("[data-detail-add]");
     if (detailButton) {
@@ -444,21 +521,21 @@ function setupProductActions() {
 
 /* ---------- Wishlist actions ---------- */
 
-function toggleWishlist(productId) {
+async function toggleWishlist(productId) {
   const wishlist = getWishlist();
   const existingIndex = wishlist.indexOf(productId);
   if (existingIndex >= 0) wishlist.splice(existingIndex, 1);
   else wishlist.push(productId);
+  await persistWishlistChange(productId, existingIndex < 0);
   saveWishlist(wishlist);
-  persistWishlistChange(productId, existingIndex < 0);
   return existingIndex < 0;
 }
 
 async function persistWishlistChange(productId, isSaved) {
   const api = window.TriptiSupabase;
-  if (!api) return;
+  if (!api) throw new Error('Login unavailable');
   const user = await api.getUser();
-  if (!user) return;
+  if (!user || user.id !== wishlistUserId) throw new Error('Please sign in again');
   try {
     if (isSaved) {
       await api.insert("wishlist_items", { user_id: user.id, product_id: productId }, { select: false, upsert: true, onConflict: "user_id,product_id" });
@@ -467,6 +544,7 @@ async function persistWishlistChange(productId, isSaved) {
     }
   } catch (error) {
     console.warn("Watchlist sync is not ready:", error.message);
+    throw error;
   }
 }
 
@@ -474,18 +552,12 @@ async function syncWishlistForSignedInUser() {
   const api = window.TriptiSupabase;
   if (!api) return;
   const user = await api.getUser();
-  if (!user) return;
+  wishlistUserId = user?.id || null;
+  if (!user) { updateWishlistCount(); return; }
   try {
     const rows = await api.select("wishlist_items", `select=product_id&user_id=eq.${encodeURIComponent(user.id)}`);
-    const local = getWishlist();
     const remote = rows.map((row) => Number(row.product_id));
-    const merged = [...new Set([...local, ...remote])];
-    const missing = local.filter((id) => !remote.includes(id));
-    if (missing.length) {
-      await api.insert("wishlist_items", missing.map((productId) => ({ user_id: user.id, product_id: productId })), { select: false, upsert: true, onConflict: "user_id,product_id" });
-    }
-    saveWishlist(merged);
-    if (["watchlist", "wishlist"].includes(document.body.dataset.page)) renderWishlist();
+    saveWishlist(remote);
   } catch (error) {
     console.warn("Watchlist sync is not ready:", error.message);
   }
@@ -516,6 +588,7 @@ function renderWishlist() {
   const empty = document.querySelector("#wishlist-empty");
   const summary = document.querySelector("#wishlist-summary");
   if (!grid || !content || !empty || !summary) return;
+  if (!wishlistUserId) { content.hidden = true; empty.hidden = true; openWishlistLogin(); return; }
 
   const stored = getWishlist();
   const wishlist = stored.filter((id) => getProduct(id));
@@ -536,6 +609,7 @@ function addToCart(productId, quantity = 1, size = "") {
     return;
   }
   const cart = getCart();
+  if (product.sizes?.length && !product.sizes.includes(size)) { window.location.href = `product.html?id=${product.id}`; return; }
   const existing = cart.find((item) => item.id === productId && item.size === size);
   const maximum = Math.min(10, product.stock ?? 10);
   if (existing) existing.quantity = Math.min(maximum, existing.quantity + quantity);
@@ -570,6 +644,7 @@ function renderCart() {
   const isEmpty = cart.length === 0;
   content.hidden = isEmpty;
   empty.hidden = !isEmpty;
+  document.querySelector('#bag-checkout-bar')?.remove();
   if (isEmpty) return;
 
   list.innerHTML = cart.map((item, index) => {
@@ -583,9 +658,21 @@ function renderCart() {
   }).join("");
 
   const totals = calculateOrder(cart);
+  const productSaving = cart.reduce((sum, item) => { const p = getProduct(item.id); return sum + Math.max(0, (p.oldPrice || p.price) - p.price) * item.quantity; }, 0);
   summary.innerHTML = `<p class="eyebrow">Order summary</p><h2>${cart.reduce((total, item) => total + item.quantity, 0)} items</h2><div class="summary-row"><span>Subtotal</span><strong>${formatPrice(totals.subtotal)}</strong></div><div class="summary-row"><span>Shipping</span><strong>${totals.shipping === 0 ? "Complimentary" : formatPrice(totals.shipping)}</strong></div><div class="summary-row summary-total"><span>Total</span><strong>${formatPrice(totals.total)}</strong></div>`;
 
   list.onclick = handleCartClick;
+  list.querySelectorAll('.cart-item-info').forEach((node, index) => {
+    const weight = jewellerySpecs(getProduct(cart[index].id)).weight;
+    if (weight) { const line = document.createElement('p'); line.className = 'cart-meta'; line.textContent = 'Weight: ' + weight; node.querySelector('h2').after(line); }
+  });
+  if (productSaving > 0) {
+    summary.querySelector('.summary-row strong').textContent = formatPrice(totals.subtotal + productSaving);
+    const row = document.createElement('div'); row.className = 'summary-row'; row.innerHTML = `<span>Product discount</span><strong>− ${formatPrice(productSaving)}</strong>`; summary.querySelector('.summary-row').after(row);
+  }
+  let sticky = document.querySelector('#bag-checkout-bar');
+  if (!sticky) { sticky = document.createElement('div'); sticky.id = 'bag-checkout-bar'; sticky.className = 'bag-checkout-bar'; document.body.append(sticky); }
+  sticky.innerHTML = `<strong data-sticky-total>${formatPrice(totals.total)}</strong><a class="button button-dark" href="#checkout-form">Proceed to checkout</a>`;
   list.onchange = handleCartInput;
   setupCheckoutForm(cart, totals);
   window.TriptiCheckout?.renderCoupon(cart, summary);
