@@ -4,7 +4,9 @@ The storefront code is separate from database activation. Do not describe the ne
 
 ## 1. Database activation
 
-In the existing Supabase project, run `supabase/store-tools-upgrade.sql` once, after the original setup, commerce and order-service migrations. It is transactional and can be rerun. Back up the database first. No historical emails are sent, and previously cancelled orders are not restocked.
+In the existing Supabase project, run `supabase/store-tools-upgrade.sql` once, after the original setup and order-service migrations. The commerce migration is optional: missing cart storage and its sync function are now installed by this file. It is transactional and can be rerun without clearing existing carts. Back up the database first. No historical emails are sent, and previously cancelled orders are not restocked.
+
+If an older version failed with `relation public.cart_items does not exist`, replace the entire SQL Editor contents with the updated file and Run again. The failed transaction did not activate the tools; do not run only the final lines.
 
 Stock is already deducted atomically by `place_order` / `place_order_v2`. This migration does NOT deduct it again. A unique order-level restoration record and an order-row trigger restore cancellation stock exactly once in the same transaction. Cancelled orders cannot be reopened. Dispatched/delivered goods must use the return process. Returns do NOT automatically restore stock or refund money; inspect received goods and adjust inventory separately.
 

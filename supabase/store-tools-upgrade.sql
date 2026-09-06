@@ -1,6 +1,45 @@
--- Run AFTER setup.sql, commerce-upgrade.sql and order-service-upgrade.sql.
+-- Run AFTER setup.sql and order-service-upgrade.sql. Commerce upgrade is optional.
 -- No historical notifications or cancelled-order stock are replayed.
 begin;
+-- Some stores have not activated commerce-upgrade.sql yet. Install its cart
+-- prerequisite without overwriting orders, inventory or existing cart records.
+create table if not exists public.cart_items (
+ user_id uuid not null references auth.users(id) on delete cascade,
+ product_id bigint not null references public.products(id) on delete cascade,
+ size text not null default '',
+ quantity integer not null default 1 check(quantity between 1 and 10),
+ updated_at timestamptz not null default now(),
+ primary key(user_id,product_id,size)
+);
+alter table public.cart_items enable row level security;
+revoke all on public.cart_items from anon,authenticated;
+grant select,insert,update,delete on public.cart_items to authenticated;
+drop policy if exists cart_items_own on public.cart_items;
+create policy cart_items_own on public.cart_items for all to authenticated
+ using(user_id=auth.uid()) with check(user_id=auth.uid());
+create or replace function public.replace_cart(p_items jsonb) returns integer
+language plpgsql security definer set search_path='' as $$
+declare item jsonb; uid uuid:=auth.uid(); product bigint; qty integer; item_size text; result integer:=0;
+begin
+ if uid is null then raise exception 'Please sign in before syncing your bag.'; end if;
+ if p_items is null or jsonb_typeof(p_items)<>'array' then raise exception 'Shopping bag data is invalid.'; end if;
+ if jsonb_array_length(p_items)>100 then raise exception 'Shopping bag is too large.'; end if;
+ perform pg_advisory_xact_lock(hashtext(uid::text));
+ delete from public.cart_items where user_id=uid;
+ for item in select value from jsonb_array_elements(p_items) loop
+  product:=(item->>'id')::bigint;
+  qty:=greatest(1,least(10,coalesce((item->>'quantity')::integer,1)));
+  item_size:=coalesce(item->>'size','');
+  if exists(select 1 from public.products where id=product and is_active) then
+   insert into public.cart_items(user_id,product_id,size,quantity) values(uid,product,item_size,qty)
+   on conflict(user_id,product_id,size) do update set quantity=excluded.quantity,updated_at=now();
+   result:=result+1;
+  end if;
+ end loop;
+ return result;
+end; $$;
+revoke all on function public.replace_cart(jsonb) from public,anon;
+grant execute on function public.replace_cart(jsonb) to authenticated;
 alter table public.products add column if not exists low_stock_threshold integer not null default 3 check(low_stock_threshold>=0);
 create table if not exists public.stock_restorations (
  order_id uuid primary key references public.orders(id), restored_at timestamptz not null default now()
