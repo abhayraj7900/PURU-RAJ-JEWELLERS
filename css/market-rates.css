@@ -3,3 +3,7 @@
 @keyframes market-scroll{to{transform:translateX(-50%)}}
 @media(max-width:600px){.market-ticker{gap:6px;padding:0 10px;min-height:36px}.market-title{font-size:12px;max-width:60px;white-space:normal}.market-item{padding:9px 16px}.market-ticker button{padding:6px}}
 @media(prefers-reduced-motion:reduce){.market-track{animation:none}.market-window{overflow-x:auto}.market-group[aria-hidden]{display:none}}
+/* Touch browsers can retain hover/focus after a tap. Only the Pause control
+   should stop animation there; desktop hover behaviour remains unchanged. */
+@media(hover:none),(pointer:coarse){.market-ticker:not(.is-paused) .market-track{animation-play-state:running}}
+@media(prefers-reduced-motion:reduce){.market-ticker.motion-enabled .market-track{animation:market-scroll var(--market-duration,40s) linear infinite}.market-ticker.motion-enabled .market-group[aria-hidden]{display:flex}.market-ticker.motion-enabled.is-paused .market-track{animation-play-state:paused}}

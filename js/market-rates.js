@@ -38,7 +38,19 @@
     strip.innerHTML = '<span class="market-title">MARKET RATES</span><div class="market-window"><div class="market-track"></div></div><button type="button" aria-label="Pause rate scrolling" aria-pressed="false">Pause</button>';
     const nav = header.querySelector('.category-nav'); nav ? nav.before(strip) : header.append(strip);
     const track = strip.querySelector('.market-track'), button = strip.querySelector('button');
-    button.onclick = () => { const paused = strip.classList.toggle('is-paused'); button.textContent = paused ? 'Play' : 'Pause'; button.setAttribute('aria-label', paused ? 'Resume rate scrolling' : 'Pause rate scrolling'); button.setAttribute('aria-pressed', String(paused)); };
+    function updateMotionButton() {
+      const paused = strip.classList.contains('is-paused');
+      button.textContent = paused ? 'Play' : 'Pause';
+      button.setAttribute('aria-label', paused ? 'Resume rate scrolling' : 'Pause rate scrolling');
+      button.setAttribute('aria-pressed', String(paused));
+    }
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) strip.classList.add('is-paused');
+    updateMotionButton();
+    button.onclick = () => {
+      const paused = strip.classList.toggle('is-paused');
+      if (!paused) strip.classList.add('motion-enabled');
+      updateMotionButton();
+    };
     let busy = false, last = '';
     async function refresh() {
       if (busy || document.hidden) return; busy = true;
