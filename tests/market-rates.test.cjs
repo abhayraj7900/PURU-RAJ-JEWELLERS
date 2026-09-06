@@ -5,6 +5,19 @@ const fs=require('node:fs');
 const window={};
 vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../js/market-rates.js'),'utf8'),{window,document:{readyState:'loading',addEventListener(){}},Date,Intl,Number});
 const rates=window.TriptiRates;
+test('ticker starts populated and playing before network completes, even with reduced motion',()=>{
+ const classes=new Set(),track={innerHTML:''},button={setAttribute(){}};
+ const strip={set className(v){v.split(' ').forEach(x=>classes.add(x));},setAttribute(){},querySelector:s=>s==='.market-track'?track:button,classList:{contains:x=>classes.has(x),add:x=>classes.add(x),toggle(x){if(classes.has(x)){classes.delete(x);return false;}classes.add(x);return true;}}};
+ const header={querySelector:()=>({before(){}})};
+ const document={readyState:'loading',hidden:false,addEventListener(){},querySelector:s=>s==='.site-header'?header:{},createElement:()=>strip};
+ const window={matchMedia:()=>({matches:true}),TriptiSupabase:{select:()=>new Promise(()=>{})}};
+ vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../js/market-rates.js'),'utf8'),{window,document,Date,Intl,Number});
+ window.TriptiRates.initialize();
+ assert.match(track.innerHTML,/Loading rates/);assert.match(track.innerHTML,/Gold 24K/);
+ assert.equal(classes.has('motion-enabled'),true);assert.equal(classes.has('is-paused'),false);assert.equal(button.textContent,'Pause');
+ button.onclick();assert.equal(classes.has('is-paused'),true);assert.equal(button.textContent,'Play');
+ button.onclick();assert.equal(classes.has('is-paused'),false);assert.equal(button.textContent,'Pause');
+});
 test('defaults do not invent rates and diamond cannot use a universal live quote',()=>{
  const result=rates.normalize({speed:1,items:[{id:'diamond',mode:'auto',value:-5}]});
  assert.equal(result.speed,20);assert.equal(result.items[2].mode,'manual');assert.equal(result.items[2].value,null);assert.equal(result.items[0].mode,'auto');

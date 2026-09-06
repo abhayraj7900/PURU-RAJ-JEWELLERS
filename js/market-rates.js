@@ -34,17 +34,20 @@
   async function initialize() {
     const header = document.querySelector('.site-header'); if (!header) return;
     installStyles();
-    const strip = document.createElement('section'); strip.className = 'market-ticker'; strip.setAttribute('aria-label', 'Indicative market rates');
+    const strip = document.createElement('section'); strip.className = 'market-ticker motion-enabled'; strip.setAttribute('aria-label', 'Indicative market rates');
     strip.innerHTML = '<span class="market-title">MARKET RATES</span><div class="market-window"><div class="market-track"></div></div><button type="button" aria-label="Pause rate scrolling" aria-pressed="false">Pause</button>';
     const nav = header.querySelector('.category-nav'); nav ? nav.before(strip) : header.append(strip);
     const track = strip.querySelector('.market-track'), button = strip.querySelector('button');
+    // Start with honest loading content: network latency must not leave an empty ticker.
+    const loading = Object.values(assets).map(([label]) => `<span class="market-item"><strong>${esc(label)}</strong><small>Loading rates…</small></span>`).join('');
+    track.innerHTML = `<div class="market-group">${loading}</div><div class="market-group" aria-hidden="true">${loading}</div>`;
     function updateMotionButton() {
       const paused = strip.classList.contains('is-paused');
       button.textContent = paused ? 'Play' : 'Pause';
       button.setAttribute('aria-label', paused ? 'Resume rate scrolling' : 'Pause rate scrolling');
       button.setAttribute('aria-pressed', String(paused));
     }
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) strip.classList.add('is-paused');
+    // The store requests autoplay on entry; the visible Pause control stops it.
     updateMotionButton();
     button.onclick = () => {
       const paused = strip.classList.toggle('is-paused');
