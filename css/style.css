@@ -537,7 +537,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--gold-dark); box-
   .auth-brand-panel { min-height: 650px; padding: 56px; }
   .auth-form-panel { display: flex; flex-direction: column; justify-content: center; padding: 58px; }
   .admin-app { display: grid; grid-template-columns: 250px minmax(0, 1fr); }
-  .admin-sidebar { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; padding: 28px 22px; }
+  .admin-sidebar { position: sticky; top: 0; height: 100vh; height: 100dvh; align-self: start; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior-y: contain; scrollbar-gutter: stable; display: flex; flex-direction: column; padding: 28px 22px; }
+  .admin-sidebar > * { flex-shrink: 0; }
   .admin-sidebar nav { display: grid; gap: 7px; overflow: visible; }
   .admin-sidebar nav button { width: 100%; justify-content: flex-start; border-color: transparent; }
   .admin-profile { display: grid; margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.15); }

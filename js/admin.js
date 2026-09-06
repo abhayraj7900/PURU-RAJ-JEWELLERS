@@ -37,13 +37,17 @@
     if (text) window.setTimeout(() => { message.hidden = true; }, 3500);
   }
 
-  function showPanel(name) {
+  function showPanel(name, reveal = false) {
+    const selected = document.querySelector(`#admin-panel-${name}`);
+    if (!selected) return;
     document.querySelectorAll("[data-admin-panel]").forEach((button) => {
       const active = button.dataset.adminPanel === name;
       button.classList.toggle("is-active", active);
       button.setAttribute("aria-selected", String(active));
     });
     document.querySelectorAll(".admin-panel").forEach((panel) => { panel.hidden = panel.id !== `admin-panel-${name}`; });
+    // Do not retain the previous section's page scroll after a menu click.
+    if (reveal) selected.scrollIntoView({ block: 'start', behavior: 'instant' });
   }
 
   async function requireAdmin() {
@@ -214,7 +218,7 @@
 
   document.addEventListener("click", (event) => {
     const button = event.target.closest("[data-admin-panel]");
-    if (button) showPanel(button.dataset.adminPanel);
+    if (button) showPanel(button.dataset.adminPanel, true);
   });
 
   document.querySelector("#product-form").addEventListener("submit", async (event) => {
