@@ -94,17 +94,19 @@ async function createShipment(client: any, order: any) {
 }
 
 async function runPostOrderServices(client: any, order: any) {
+  // Once store tools are activated, its durable outbox owns email events.
+  const { error: outboxError } = await client.from('store_outbox').select('id').limit(1);
   const safely = async (operation: Promise<any>, fallback: string) => {
     try { return await operation; }
     catch (error) { return { status: "failed", id: "", error: error instanceof Error ? error.message : fallback }; }
   };
   const [emailResult, smsResult, shippingResult] = await Promise.all([
-    safely(sendEmail({
+    outboxError ? safely(sendEmail({
       to: order.email,
       subject: `Order ${order.order_number} confirmed | Tripti Jewellers`,
       html: invoiceEmail(order),
       idempotencyKey: `order-confirmed-${order.id}`
-    }), "Email notification failed."),
+    }), "Email notification failed.") : Promise.resolve({ status: 'skipped', id: '', error: 'Email handled by store notification queue.' }),
     safely(sendOrderSms({ mobile: order.phone, orderNumber: order.order_number, total: order.total, status: "confirmed" }), "SMS notification failed."),
     safely(createShipment(client, order), "Shipment creation failed.")
   ]);

@@ -256,6 +256,25 @@
     }
   }
 
+  async function uploadCustomerPhoto(bucket, path, file) {
+    if (!['return-evidence', 'review-photos'].includes(bucket)) throw new Error('Invalid photo bucket.');
+    const active = await getSession();
+    if (!active) throw new Error('Please sign in again.');
+    const response = await fetch(`${CONFIG.url}/storage/v1/object/${bucket}/${path.split('/').map(encodeURIComponent).join('/')}`, {
+      method: 'POST', headers: { apikey: CONFIG.publishableKey, Authorization: `Bearer ${active.access_token}`, 'Content-Type': file.type }, body: file,
+      signal: AbortSignal.timeout(20000)
+    });
+    if (!response.ok) throw new Error('Photo upload failed. Check the image size and database/storage activation.');
+    return path;
+  }
+
+  async function customerPhotoURL(bucket, path) {
+    if (bucket !== 'return-evidence') throw new Error('Invalid private photo bucket.');
+    const result = await fetchJson(`/storage/v1/object/sign/${bucket}/${path.split('/').map(encodeURIComponent).join('/')}`, { method: 'POST', body: { expiresIn: 300 } });
+    if (!result?.signedURL?.startsWith('/object/sign/')) throw new Error('Could not open this photo.');
+    return `${CONFIG.url}/storage/v1${result.signedURL}`;
+  }
+
   window.TriptiSupabase = Object.freeze({
     config: CONFIG,
     getSession,
@@ -276,6 +295,8 @@
     rpc,
     invokeFunction,
     uploadPublic,
+    uploadCustomerPhoto,
+    customerPhotoURL,
     onAuthChange(listener) { listeners.add(listener); return () => listeners.delete(listener); }
   });
 })();

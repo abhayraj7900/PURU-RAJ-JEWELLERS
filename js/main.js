@@ -57,6 +57,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (page === "contact") setupContactForm();
   if (window.TriptiContent) await window.TriptiContent.initializePublic();
   setupSupportPanel();
+  if (page === 'product') await window.TriptiStoreTools?.product();
+  if (page === 'cart') await window.TriptiStoreTools?.cart();
 });
 
 /* ---------- Shared helpers ---------- */

@@ -397,6 +397,7 @@
       if (window.TriptiCouponAdmin) await window.TriptiCouponAdmin.initialize();
       if (window.TriptiRatesAdmin) await window.TriptiRatesAdmin.initialize();
       if (window.TriptiOrderService) await window.TriptiOrderService.initializeAdmin();
+      if (window.TriptiStoreTools) await window.TriptiStoreTools.admin();
       showPanel("overview");
       await Promise.all([loadProducts(), loadOrders(), loadCustomers(), loadContacts(), loadCategories(), loadSettings(), loadBanners()]);
     } catch (error) {

@@ -176,6 +176,7 @@
       loading.hidden = true;
       dashboard.hidden = false;
       await Promise.all([loadOrders(), loadAddresses()]);
+      if (window.TriptiStoreTools) await window.TriptiStoreTools.customer();
     } catch (error) {
       loading.hidden = true;
       showError(error.message);
