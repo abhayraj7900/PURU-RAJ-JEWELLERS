@@ -197,7 +197,7 @@ async function loadRemoteStoreData() {
   const [catalogResult, settingsResult, bannerResult] = await Promise.allSettled([
     needsCatalogue ? api.select("products", "select=*&is_active=eq.true&order=display_order.asc,created_at.asc") : Promise.resolve([]),
     api.select("site_settings", "select=*&id=eq.1&limit=1"),
-    page === "home" ? api.select("banners", "select=*&is_active=eq.true&order=display_order.asc,created_at.desc&limit=1") : Promise.resolve([])
+    page === "home" ? api.select("banners", "select=*&button_label=not.like.shop-carousel:*&is_active=eq.true&order=display_order.asc,created_at.desc&limit=1") : Promise.resolve([])
   ]);
 
   if (catalogResult.status === "fulfilled" && catalogResult.value.length) {

@@ -182,7 +182,7 @@
   }
 
   async function loadBanners() {
-    banners = await api.select("banners", "select=*&order=display_order.asc,created_at.desc");
+    banners = await api.select("banners", "select=*&button_label=not.like.shop-carousel:*&order=display_order.asc,created_at.desc");
     document.querySelector("#banner-list").innerHTML = banners.length ? banners.map((banner) => `
       <article class="banner-admin-card"><div><p class="eyebrow">${banner.is_active ? "Active" : "Hidden"}</p><h3>${escapeHtml(banner.title)}</h3><p>${escapeHtml(banner.body)}</p></div><div class="table-actions"><button type="button" data-edit-banner="${banner.id}">Edit</button><button class="danger-action" type="button" data-delete-banner="${banner.id}">Delete</button></div></article>`).join("") : '<p class="dashboard-muted">No banners yet.</p>';
   }
@@ -402,6 +402,7 @@
       if (window.TriptiRatesAdmin) await window.TriptiRatesAdmin.initialize();
       if (window.TriptiOrderService) await window.TriptiOrderService.initializeAdmin();
       if (window.TriptiStoreTools) await window.TriptiStoreTools.admin();
+      if (window.TriptiShopCarousel) await window.TriptiShopCarousel.admin();
       showPanel("overview");
       await Promise.all([loadProducts(), loadOrders(), loadCustomers(), loadContacts(), loadCategories(), loadSettings(), loadBanners()]);
     } catch (error) {

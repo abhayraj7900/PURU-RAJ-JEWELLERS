@@ -29,3 +29,6 @@ dist/
 
 # Local Vercel project metadata
 .vercel/
+
+# High-resolution source copies; optimized carousel assets are tracked in images/.
+/output/imagegen/shop-carousel/

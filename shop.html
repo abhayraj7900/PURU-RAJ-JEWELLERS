@@ -12,7 +12,7 @@
   <meta property="og:image" content="https://tripti-jewellers.rosy-mochi-9272.chatgpt.site/images/social-preview.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="css/site-content.css">
+  <link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="css/site-content.css"><link rel="stylesheet" href="css/shop-carousel.css">
 </head>
 <body data-page="shop">
   <a class="skip-link" href="#main-content">Skip to content</a><div class="offer-bar">Complimentary insured shipping across India</div>
@@ -59,7 +59,7 @@
     <div class="mobile-menu-pages"><a href="about.html">Our story</a><a href="contact.html">Contact & stores</a><a href="login.html" data-account-menu-link><span data-account-menu-text>Login</span></a></div>
   </aside>
   <main id="main-content">
-    <section class="page-hero"><div class="container"><p class="eyebrow">The complete collection</p><h1>Shop jewellery</h1><p>Discover gold, diamond and gemstone designs for daily wear, gifting and weddings.</p></div></section>
+    <section class="shop-collection-hero" id="shop-carousel" aria-label="Shop jewellery collections" aria-roledescription="carousel"><div class="container"><div class="shop-carousel-heading"><div><p class="eyebrow">The Tripti edit</p><h1>Shop jewellery</h1><p>Discover a little everyday sparkle and something for your biggest moments.</p></div><div class="shop-carousel-controls"><button type="button" data-carousel-prev aria-label="Previous collection">←</button><button type="button" data-carousel-pause aria-pressed="false">Pause</button><button type="button" data-carousel-next aria-label="Next collection">→</button></div></div><div class="shop-carousel-viewport"><div class="shop-carousel-track"></div></div><div class="shop-carousel-note"><span>Collection inspiration. Images are illustrative; explore available products.</span><span data-carousel-position></span></div></div></section>
     <section class="section shop-section"><div class="container">
       <div class="shop-toolbar"><div class="filter-scroll" id="category-filters" aria-label="Filter products by category"></div><p id="product-count" aria-live="polite"></p></div>
       <div class="product-grid" id="shop-products"></div>
@@ -73,6 +73,6 @@
     <div><h2>Stay connected</h2><p>Questions or order help? We are just a message away.</p><a class="footer-whatsapp" data-whatsapp-link href="#">Chat on WhatsApp →</a></div>
   </div><div class="container footer-bottom"><span>© <span data-current-year></span> Tripti Jewellers</span><span>Made with care in India</span></div></footer>
   <a class="whatsapp-float" data-whatsapp-link href="#" target="_blank" rel="noopener" aria-label="Chat with Tripti Jewellers on WhatsApp"><span>WA</span></a><div class="toast" role="status" aria-live="polite"></div>
-  <script src="js/supabase-client.js"></script><script src="js/products.js"></script><script src="js/site-content.js"></script><script src="js/main.js"></script>
+  <script src="js/supabase-client.js"></script><script src="js/shop-carousel.js"></script><script src="js/products.js"></script><script src="js/site-content.js"></script><script src="js/main.js"></script>
 </body>
 </html>
