@@ -1,0 +1,4 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');const vm=require('node:vm');const fs=require('node:fs');const window={};
+vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../js/order-service.js'),'utf8'),{window,URL});
+test('tracking URLs reject executable URLs and embedded credentials',()=>{const safe=window.TriptiOrderService.safe;assert.equal(safe('javascript:alert(1)'), '');assert.equal(safe('https://user:secret@example.com'),'');assert.equal(safe('http://example.com'),'');assert.equal(safe('https://example.com/track'),'https://example.com/track');});
+test('cancellation eligibility excludes dispatched and terminal orders',()=>{for(const status of ['pending','confirmed','processing'])assert.equal(window.TriptiOrderService.eligible({status}),true);for(const status of ['shipped','delivered','cancelled','unknown'])assert.equal(window.TriptiOrderService.eligible({status}),false);});

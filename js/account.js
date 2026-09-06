@@ -76,6 +76,7 @@
           <strong>${formatPrice(order.total)}</strong>
           <div class="order-card-actions"><a class="text-link" href="invoice.html?order=${encodeURIComponent(order.id)}">View invoice →</a>${order.tracking_url ? `<a class="text-link" href="${escapeHtml(order.tracking_url)}" target="_blank" rel="noopener">Track shipment →</a>` : `<span>${order.shipping_status === "created" ? "Shipment booking created" : "Tracking will appear here"}</span>`}</div>
         </article>`).join("");
+      if (window.TriptiOrderService) await window.TriptiOrderService.customers(orders, container);
     } catch (error) {
       container.innerHTML = `<p class="dashboard-inline-error">${escapeHtml(error.message)}</p>`;
     }
