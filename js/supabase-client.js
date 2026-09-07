@@ -1,4 +1,4 @@
-/* Tripti Jewellers Supabase client: Auth, PostgREST and Storage without exposing secret keys. */
+/* Puru Raj Jewelllers Supabase client: Auth, PostgREST and Storage without exposing secret keys. */
 (function () {
   "use strict";
 

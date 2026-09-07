@@ -60,7 +60,7 @@
         row.innerHTML = `<span>Coupon ${escapeHtml(order.coupon_code || "")}</span><strong>− ${price(order.discount)}</strong>`;
         document.querySelector(".invoice-grand-total").before(row);
       }
-      document.title = `${order.invoice_number || order.order_number} | Tripti Jewellers`;
+      document.title = `${order.invoice_number || order.order_number} | Puru Raj Jewelllers`;
       loading.hidden = true;
       documentBox.hidden = false;
       actions.hidden = false;

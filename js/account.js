@@ -46,7 +46,7 @@
   }
 
   function fillProfile() {
-    document.querySelector("#account-name").textContent = profile.full_name || "Tripti customer";
+    document.querySelector("#account-name").textContent = profile.full_name || "Puru Raj customer";
     document.querySelector("#account-email").textContent = profile.email;
     document.querySelector("#profile-name").value = profile.full_name || "";
     document.querySelector("#profile-email").value = profile.email;

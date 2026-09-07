@@ -1,4 +1,4 @@
-/* Tripti Jewellers admin dashboard. Supabase RLS remains the source of authorization. */
+/* Puru Raj Jewelllers admin dashboard. Supabase RLS remains the source of authorization. */
 (function () {
   "use strict";
 
@@ -71,7 +71,7 @@
       denied.hidden = false;
       return false;
     }
-    document.querySelector("#admin-name").textContent = profile.full_name || "Tripti Admin";
+    document.querySelector("#admin-name").textContent = profile.full_name || "Puru Raj Admin";
     document.querySelector("#admin-email").textContent = profile.email;
     return true;
   }

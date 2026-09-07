@@ -1,5 +1,5 @@
 /* ================================================================
-   TRIPTI JEWELLERS — MAIN JAVASCRIPT
+   PURU RAJ JEWELLLERS — MAIN JAVASCRIPT
    Cart, catalogue, navigation and secure checkout live here.
    ================================================================ */
 
@@ -270,7 +270,7 @@ function setupSearchForms() {
 }
 
 function setupStoreDetails() {
-  const greeting = encodeURIComponent("Hello Tripti Jewellers, I would like some help.");
+  const greeting = encodeURIComponent("Hello Puru Raj Jewelllers, I would like some help.");
   document.querySelectorAll("[data-whatsapp-link]").forEach((link) => {
     link.href = `https://wa.me/${STORE_CONFIG.whatsappNumber}?text=${greeting}`;
     link.target = "_blank";
@@ -284,11 +284,11 @@ function setupStoreDetails() {
 
 function setupSupportPanel() {
   const launcher=document.querySelector('.whatsapp-float');if(!launcher)return;
-  launcher.setAttribute('aria-label','Open Tripti customer support');launcher.querySelector('span').textContent='Chat';
+  launcher.setAttribute('aria-label','Open Puru Raj customer support');launcher.querySelector('span').textContent='Chat';
   const dialog=document.createElement('dialog');dialog.className='shop-sheet support-sheet';
-  dialog.innerHTML='<form method="dialog"><button class="sheet-close" aria-label="Close support">×</button></form><h2>Tripti support</h2><p>Our jewellery team can help with products and orders. Continue on WhatsApp to send your enquiry.</p><form id="support-enquiry"><label>Name<input name="name" autocomplete="name" maxlength="100" required></label><label>Mobile<input name="phone" autocomplete="tel" type="tel" pattern="[0-9+ ]{10,15}" required></label><label>Email (optional)<input name="email" autocomplete="email" type="email"></label><label>How can we help?<textarea name="message" maxlength="1000" required></textarea></label><p class="form-note">These details will be included in your WhatsApp message. No AI chat or instant-response guarantee.</p><button class="button button-dark" type="submit">Continue on WhatsApp</button><p role="status"></p></form>';document.body.append(dialog);
+  dialog.innerHTML='<form method="dialog"><button class="sheet-close" aria-label="Close support">×</button></form><h2>Puru Raj support</h2><p>Our jewellery team can help with products and orders. Continue on WhatsApp to send your enquiry.</p><form id="support-enquiry"><label>Name<input name="name" autocomplete="name" maxlength="100" required></label><label>Mobile<input name="phone" autocomplete="tel" type="tel" pattern="[0-9+ ]{10,15}" required></label><label>Email (optional)<input name="email" autocomplete="email" type="email"></label><label>How can we help?<textarea name="message" maxlength="1000" required></textarea></label><p class="form-note">These details will be included in your WhatsApp message. No AI chat or instant-response guarantee.</p><button class="button button-dark" type="submit">Continue on WhatsApp</button><p role="status"></p></form>';document.body.append(dialog);
   launcher.onclick=e=>{e.preventDefault();dialog.showModal();};
-  dialog.querySelector('#support-enquiry').onsubmit=async e=>{e.preventDefault();const form=e.target,content=await window.TriptiContent.load();const number=(content.whatsapp||STORE_CONFIG.whatsappNumber||'').replace(/\D/g,'');if(!/^[1-9][0-9]{9,14}$/.test(number)||number==='919999999999'){form.querySelector('[role=status]').textContent='WhatsApp number is not configured yet. Please use the Contact page.';return;}const data=new FormData(form);const message=`Hello Tripti Jewellers\nName: ${data.get('name')}\nMobile: ${data.get('phone')}\nEmail: ${data.get('email')}\n${data.get('message')}\nPage: ${location.href}`;location.href=`https://wa.me/${number}?text=${encodeURIComponent(message)}`;};
+  dialog.querySelector('#support-enquiry').onsubmit=async e=>{e.preventDefault();const form=e.target,content=await window.TriptiContent.load();const number=(content.whatsapp||STORE_CONFIG.whatsappNumber||'').replace(/\D/g,'');if(!/^[1-9][0-9]{9,14}$/.test(number)||number==='919999999999'){form.querySelector('[role=status]').textContent='WhatsApp number is not configured yet. Please use the Contact page.';return;}const data=new FormData(form);const message=`Hello Puru Raj Jewelllers\nName: ${data.get('name')}\nMobile: ${data.get('phone')}\nEmail: ${data.get('email')}\n${data.get('message')}\nPage: ${location.href}`;location.href=`https://wa.me/${number}?text=${encodeURIComponent(message)}`;};
 }
 
 async function updateAccountLinks() {
@@ -355,7 +355,7 @@ function setupShop() {
   const facets={'Jewellery Type':'type','Brand':'brand','Gender':'gender','Karatage':'purity','Occasion':'occasion','Metal':'metal','Diamond Clarity':'clarity','Collection':'collection','Community':'community','Form':'form','Type':'type','Metal Colour':'colour','Width':'width'};
   const toolbar=document.createElement('div');toolbar.className='shopping-tools';toolbar.innerHTML='<button type="button" data-filter-open>☷ Filter by</button><button type="button" data-sort-open>↕ Sort by</button>';filters.before(toolbar);
   const filterDialog=document.createElement('dialog');filterDialog.className='shop-sheet';
-  filterDialog.innerHTML=`<form method="dialog"><button class="sheet-close" aria-label="Close filters">×</button></form><h2>Filter By</h2><form id="facet-form"><details open><summary>Price</summary><label>Minimum ₹<input type="number" name="min" min="0"></label><label>Maximum ₹<input type="number" name="max" min="0"></label></details>${Object.entries(facets).map(([label,key])=>{const values=[...new Set(PRODUCTS.map(p=>key==='brand'?(jewellerySpecs(p)[key]||'Tripti Jewellers'):jewellerySpecs(p)[key]).filter(Boolean))];return `<details><summary>${label}</summary>${values.length?values.map(v=>`<label><input type="checkbox" name="${key}" value="${escapeHTML(v)}"> ${escapeHTML(v)}</label>`).join(''):'<p>Details have not been added to the catalogue yet.</p>'}</details>`;}).join('')}<div class="sheet-actions"><button type="button" data-clear>Clear filters</button><button type="submit" class="button button-dark">Show results</button></div></form>`;
+  filterDialog.innerHTML=`<form method="dialog"><button class="sheet-close" aria-label="Close filters">×</button></form><h2>Filter By</h2><form id="facet-form"><details open><summary>Price</summary><label>Minimum ₹<input type="number" name="min" min="0"></label><label>Maximum ₹<input type="number" name="max" min="0"></label></details>${Object.entries(facets).map(([label,key])=>{const values=[...new Set(PRODUCTS.map(p=>key==='brand'?(jewellerySpecs(p)[key]||'Puru Raj Jewelllers'):jewellerySpecs(p)[key]).filter(Boolean))];return `<details><summary>${label}</summary>${values.length?values.map(v=>`<label><input type="checkbox" name="${key}" value="${escapeHTML(v)}"> ${escapeHTML(v)}</label>`).join(''):'<p>Details have not been added to the catalogue yet.</p>'}</details>`;}).join('')}<div class="sheet-actions"><button type="button" data-clear>Clear filters</button><button type="submit" class="button button-dark">Show results</button></div></form>`;
   const sortDialog=document.createElement('dialog');sortDialog.className='shop-sheet';sortDialog.innerHTML='<form method="dialog"><button class="sheet-close" aria-label="Close sorting">×</button></form><h2>Sort By</h2>'+[['match','Best matches'],['best','Best sellers'],['new','New arrivals'],['recommended','Recommendations'],['low','Price: low to high'],['high','Price: high to low']].map(([v,label])=>`<button class="sort-option" type="button" data-sort="${v}">${label}</button>`).join('');document.body.append(filterDialog,sortDialog);
   toolbar.querySelector('[data-filter-open]').onclick=()=>filterDialog.showModal();toolbar.querySelector('[data-sort-open]').onclick=()=>sortDialog.showModal();
   const facetForm=filterDialog.querySelector('#facet-form');facetForm.onsubmit=e=>{e.preventDefault();const data=new FormData(facetForm);if(data.get('min')&&data.get('max')&&Number(data.get('min'))>Number(data.get('max'))){showToast('Minimum price must not exceed maximum price');return;}appliedFilters={};for(const key of new Set(data.keys()))appliedFilters[key]=data.getAll(key);filterDialog.close();renderFilteredProducts();};
@@ -371,7 +371,7 @@ function setupShop() {
     if (searchQuery) {
       visible = visible.filter((product) => `${product.name} ${product.category} ${product.description}`.toLowerCase().includes(searchQuery));
     }
-    visible=visible.filter(p=>Object.entries(appliedFilters).every(([key,values])=>key==='min'?!values[0]||p.price>=Number(values[0]):key==='max'?!values[0]||p.price<=Number(values[0]):values.includes(jewellerySpecs(p)[key]||(key==='brand'?'Tripti Jewellers':''))));
+    visible=visible.filter(p=>Object.entries(appliedFilters).every(([key,values])=>key==='min'?!values[0]||p.price>=Number(values[0]):key==='max'?!values[0]||p.price<=Number(values[0]):values.includes(jewellerySpecs(p)[key]||(key==='brand'?'Puru Raj Jewelllers':''))));
     visible=[...visible].sort((a,b)=>sortMode==='low'?a.price-b.price:sortMode==='high'?b.price-a.price:sortMode==='best'?Number(/bestseller/i.test(b.badge))-Number(/bestseller/i.test(a.badge)):sortMode==='new'?Number(/new/i.test(b.badge))-Number(/new/i.test(a.badge)):sortMode==='recommended'?Number(b.featured)-Number(a.featured):0);
     container.innerHTML = visible.map(productCard).join("");
     document.querySelector("#product-count").textContent = `${visible.length} ${visible.length === 1 ? "design" : "designs"}${searchQuery ? ` for “${searchQuery}”` : ""}`;
@@ -428,9 +428,9 @@ function renderProductPage() {
     return;
   }
 
-  document.title = `${product.name} | Tripti Jewellers`;
-  updateMeta("meta[name='description']", `${product.name}: ${product.description} Shop from Tripti Jewellers.`);
-  updateMeta("meta[property='og:title']", `${product.name} | Tripti Jewellers`);
+  document.title = `${product.name} | Puru Raj Jewelllers`;
+  updateMeta("meta[name='description']", `${product.name}: ${product.description} Shop from Puru Raj Jewelllers.`);
+  updateMeta("meta[property='og:title']", `${product.name} | Puru Raj Jewelllers`);
   updateMeta("meta[property='og:description']", product.description);
   updateMeta("meta[property='og:url']", `https://tripti-jewellers.rosy-mochi-9272.chatgpt.site/product.html?id=${product.id}`);
   document.querySelector("#breadcrumb-product").textContent = product.name;
@@ -466,7 +466,7 @@ function renderProductPage() {
   document.querySelector("#related-products").innerHTML = related.map(productCard).join("");
   setupProductQuantity();
   const share=document.createElement('button');share.type='button';share.className='button button-outline';share.textContent='Share design ↗';container.querySelector('.product-info h1').after(share);
-  share.onclick=async()=>{const url=`https://triptijewllers.vercel.app/product.html?id=${product.id}`,text=`${product.name} — ${formatPrice(product.price)} | Tripti Jewellers`;try{if(navigator.share)await navigator.share({title:product.name,text,url});else{await navigator.clipboard.writeText(text+'\n'+url);showToast('Product details and link copied');}}catch(e){if(e.name!=='AbortError')showToast('Could not share. Copy the page link from your browser.');}};
+  share.onclick=async()=>{const url=`https://triptijewllers.vercel.app/product.html?id=${product.id}`,text=`${product.name} — ${formatPrice(product.price)} | Puru Raj Jewelllers`;try{if(navigator.share)await navigator.share({title:product.name,text,url});else{await navigator.clipboard.writeText(text+'\n'+url);showToast('Product details and link copied');}}catch(e){if(e.name!=='AbortError')showToast('Could not share. Copy the page link from your browser.');}};
   container.querySelectorAll('[data-jewel-panel]').forEach(button => button.onclick = () => {
     container.querySelectorAll('[data-jewel-panel]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
     container.querySelector('#jewel-specs').hidden = button.dataset.jewelPanel !== 'specs';
@@ -831,7 +831,7 @@ function setupCheckoutForm(cart, totals) {
         key: payment.key_id,
         amount: payment.amount,
         currency: payment.currency,
-        name: "Tripti Jewellers",
+        name: "Puru Raj Jewelllers",
         description: `Order ${order.order_number}`,
         order_id: payment.order_id,
         prefill: { name: draft.name, email: user.email, contact: draft.phone },

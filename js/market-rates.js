@@ -17,7 +17,7 @@
     return result;
   }
   function quote(item, feed, now = Date.now()) {
-    if (item.mode !== 'auto') return { value: item.value, status: item.id === 'diamond' ? 'Indicative · store rate' : 'Store rate', time: item.updated_at, source: 'Tripti Jewellers' };
+    if (item.mode !== 'auto') return { value: item.value, status: item.id === 'diamond' ? 'Indicative · store rate' : 'Store rate', time: item.updated_at, source: 'Puru Raj Jewelllers' };
     const q = feed?.quotes?.[item.id];
     const age = now - Date.parse(q?.asOf);
     if (!q || !Number.isFinite(q.value) || q.value <= 0 || q.unit !== item.unit || !q.source || !Number.isFinite(age) || age < -60000 || age > 86400000) return { value: null, status: 'Feed unavailable' };

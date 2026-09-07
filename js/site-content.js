@@ -5,25 +5,25 @@
   const DRAFT_KEY = "triptiContentPreviewV1";
   const pages = [
     ["delivery", "Delivery Information", "useful", "Choose your jewellery and enter your delivery PIN code to check the areas we serve. Delivery estimates are shown when coverage has been confirmed. For help with a particular order, contact our team."],
-    ["international", "International Shipping", "useful", "For delivery outside India, please contact Tripti Jewellers before placing an order. Our team will confirm whether delivery is available, along with charges and any additional requirements."],
+    ["international", "International Shipping", "useful", "For delivery outside India, please contact Puru Raj Jewelllers before placing an order. Our team will confirm whether delivery is available, along with charges and any additional requirements."],
     ["payments", "Payment Options", "useful", "Available payment methods are shown at checkout. Never share a payment PIN, password or OTP with anyone. For help with a payment or refund, contact our team with your order number."],
     ["returns", "Returns", "useful", "If an item arrives damaged or differs from your order, contact our team with your order number and photographs. Please keep the item and its original packaging. Our team will explain the applicable return or replacement process before you send anything back."],
-    ["blog", "Blog", "information", "Stories from Tripti Jewellers\n\nOur latest jewellery stories and care notes will be shared here. Speak to our team for guidance on selecting and caring for your jewellery."],
+    ["blog", "Blog", "information", "Stories from Puru Raj Jewelllers\n\nOur latest jewellery stories and care notes will be shared here. Speak to our team for guidance on selecting and caring for your jewellery."],
     ["offers", "Offers & Contest Details", "information", "Current offers and their terms will be published here. Contact our team to confirm eligibility, availability and the final price before purchasing."],
     ["faq", "Help & FAQs", "information", "How do I order?\nBrowse the collection, choose your design and size, add it to your bag and continue to checkout.\n\nWhere can I see my order?\nSign in to My Account to view your order history and available tracking details.\n\nNeed help with sizing or a gift?\nContact our team before ordering."],
     ["cookies", "Cookie Policy", "information", "This website uses browser storage to remember your shopping bag, saved items and sign-in session. You can remove this information through your browser settings. Removing it may sign you out and clear locally saved preferences. Contact us if you have questions about information stored on your device."],
     ["security", "Cyber Security Policy", "legal", "Report a suspicious message or a possible website security issue to our contact email. Do not include passwords, OTPs, card numbers or other secret information in your report. Our team will review it and contact you when more information is needed."],
     ["terms", "Terms & Conditions", "legal", "Please review the product details, price, payment method and delivery information before placing an order. Contact our team to clarify availability, customisation, cancellations or returns. The terms applicable to a specific service or offer will be communicated with that service or offer."],
     ["privacy", "Privacy Notice", "legal", "We use the contact and delivery information you provide to assist with enquiries and fulfil orders. Your account gives you access to your saved details and orders. Order information may be shared with the payment and delivery services needed to process your purchase. Contact our team for requests concerning your personal information."],
-    ["disclaimer", "Disclaimer", "legal", "Product photographs may appear different across screens. Review the product description and confirm any questions about size, weight, purity, availability or pricing with Tripti Jewellers before purchasing."]
+    ["disclaimer", "Disclaimer", "legal", "Product photographs may appear different across screens. Review the product description and confirm any questions about size, weight, purity, availability or pricing with Puru Raj Jewelllers before purchasing."]
   ].map(([slug, title, group, body]) => ({ slug, title, group, body }));
   const DEFAULTS = {
-    brand: "Tripti Jewellers", tagline: "Timeless beauty, lasting trust.",
+    brand: "Puru Raj Jewelllers", tagline: "Timeless beauty, lasting trust.",
     phone: "", whatsapp: "", email: "triptijewellers4826@gmail.com", hours: "",
-    copyright: "Tripti Jewellers. All rights reserved.",
+    copyright: "Puru Raj Jewelllers. All rights reserved.",
     instagram: "", facebook: "", youtube: "", x: "", playStore: "", appStore: "",
     paymentNote: "Available payment methods are shown at checkout.",
-    locatorTitle: "Welcome to Tripti Jewellers!", locatorIntro: "Find a store near you. Search by city, area or PIN code.",
+    locatorTitle: "Welcome to Puru Raj Jewelllers!", locatorIntro: "Find a store near you. Search by city, area or PIN code.",
     deliveryNote: "Delivery estimates are subject to order confirmation and courier availability.",
     stores: [], zones: [], pages
   };
@@ -50,6 +50,12 @@
       const saved=Array.isArray(source.pages)?source.pages.find(row=>row&&row.slug===p.slug):null;
       return {...p,title:typeof saved?.title==="string"?saved.title.slice(0,100):p.title,body:typeof saved?.body==="string"?saved.body.slice(0,50000):p.body};
     });
+    // Display the renamed store even when older dashboard copy is still saved.
+    // Limit this migration to copy fields; never alter email, URLs or account identifiers.
+    const renameBrand = text => String(text).replace(/\bTripti\s*Jewellers\b/gi, "Puru Raj Jewelllers");
+    ["brand", "tagline", "copyright", "locatorTitle", "locatorIntro"].forEach(key => result[key] = renameBrand(result[key]));
+    result.pages.forEach(page => { page.title = renameBrand(page.title); page.body = renameBrand(page.body); });
+    result.stores.forEach(store => { store.name = renameBrand(store.name); });
     return result;
   }
   async function load() {
@@ -86,7 +92,7 @@
         <section><h2>Information</h2>${data.pages.filter(p=>p.group==="information").map(pageLink).join("")}<a href="about.html">About ${esc(data.brand)}</a></section>
         <section class="footer-contact-column"><h2>Contact Us</h2>${data.phone ? `<a href="tel:${esc(data.phone.replace(/[^+0-9]/g,""))}">${esc(data.phone)}</a>` : `<a href="contact.html">Speak with our team</a>`}<a href="mailto:${esc(data.email)}">${esc(data.email)}</a>${data.hours ? `<p>${esc(data.hours)}</p>` : ""}<h2>Chat With Us</h2>${data.whatsapp ? `<a href="https://wa.me/${data.whatsapp.replace(/\D/g,"")}" target="_blank" rel="noopener">${esc(data.whatsapp)}</a>` : ""}<div class="footer-contact-actions"><a href="contact.html" aria-label="Send a message">Message us ↗</a><a href="stores.html">Visit a store ↗</a></div></section>
       </div>
-      <div class="footer-connect-row"><a class="footer-signature" href="index.html"><img src="images/tripti-tj-monogram-transparent.png" alt=""><span>${esc(data.brand)}<small>${esc(data.tagline)}</small></span></a>${apps.length ? `<div class="footer-apps">${apps.map(([key,label])=>`<a href="${esc(safeUrl(data[key]))}" target="_blank" rel="noopener"><small>Download on the</small>${label} ↗</a>`).join("")}</div>` : ""}${socials.length ? `<nav class="footer-socials" aria-label="Social media"><span>Social</span>${socials.map(([key,label])=>`<a href="${esc(safeUrl(data[key]))}" target="_blank" rel="noopener">${label} ↗</a>`).join("")}</nav>` : ""}</div>
+      <div class="footer-connect-row"><a class="footer-signature" href="index.html"><img src="images/puru-raj-prj-logo.png" alt=""><span>${esc(data.brand)}<small>${esc(data.tagline)}</small></span></a>${apps.length ? `<div class="footer-apps">${apps.map(([key,label])=>`<a href="${esc(safeUrl(data[key]))}" target="_blank" rel="noopener"><small>Download on the</small>${label} ↗</a>`).join("")}</div>` : ""}${socials.length ? `<nav class="footer-socials" aria-label="Social media"><span>Social</span>${socials.map(([key,label])=>`<a href="${esc(safeUrl(data[key]))}" target="_blank" rel="noopener">${label} ↗</a>`).join("")}</nav>` : ""}</div>
       <div class="footer-payments"><span>Payment options</span><p>${esc(data.paymentNote)}</p><a href="information.html?page=payments">Learn more →</a></div>
       <div class="footer-legal"><p>© ${new Date().getFullYear()} ${esc(data.copyright)}</p><nav aria-label="Policies">${data.pages.filter(p=>p.group==="legal").map(pageLink).join("")}</nav></div>
     </div>`;
@@ -99,7 +105,7 @@
     document.querySelector("#information-navigation").innerHTML = data.pages.map(p=>`<a href="information.html?page=${encodeURIComponent(p.slug)}" ${p.slug===slug?'aria-current="page"':""}>${esc(p.title)}</a>`).join("");
     if (!page) { target.innerHTML = '<h1>Page not found</h1><a href="contact.html">Contact our team</a>'; return; }
     document.title = `${page.title} | ${data.brand}`;
-    target.innerHTML = `<p class="eyebrow">${esc(data.brand)} · Customer care</p><h1>${esc(page.title)}</h1><div class="information-copy">${page.body.split(/\n\s*\n/).map(p=>`<p>${esc(p).replace(/\n/g,"<br>")}</p>`).join("")}</div>${page.slug==="delivery"?'<a class="button button-dark" href="delivery.html">Check your delivery PIN code →</a>':""}<div class="information-help"><p>Need a little more help?</p><a class="text-link" href="contact.html">Contact Tripti Jewellers →</a></div>`;
+    target.innerHTML = `<p class="eyebrow">${esc(data.brand)} · Customer care</p><h1>${esc(page.title)}</h1><div class="information-copy">${page.body.split(/\n\s*\n/).map(p=>`<p>${esc(p).replace(/\n/g,"<br>")}</p>`).join("")}</div>${page.slug==="delivery"?'<a class="button button-dark" href="delivery.html">Check your delivery PIN code →</a>':""}<div class="information-help"><p>Need a little more help?</p><a class="text-link" href="contact.html">Contact Puru Raj Jewelllers →</a></div>`;
   }
   function distance(lat, lng, store) {
     if (store.lat === "" || store.lng === "" || store.lat == null || store.lng == null) return Infinity;

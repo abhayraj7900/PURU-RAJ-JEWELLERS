@@ -1,5 +1,5 @@
 /*
-  TRIPTI JEWELLERS PRODUCT CATALOGUE
+  PURU RAJ JEWELLLERS PRODUCT CATALOGUE
   Replace these sample products and the shared campaign image with the real catalogue before launch.
 */
 window.PRODUCTS = [

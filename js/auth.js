@@ -1,4 +1,4 @@
-/* Login, registration and password recovery for Tripti Jewellers customers. */
+/* Login, registration and password recovery for Puru Raj Jewelllers customers. */
 (function () {
   "use strict";
 

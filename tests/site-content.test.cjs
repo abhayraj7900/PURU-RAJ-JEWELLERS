@@ -11,6 +11,15 @@ function fixture(host = '127.0.0.1') {
   vm.runInNewContext(source, { window, location: { hostname: host }, URL, structuredClone, localStorage: { getItem: key=>storage.get(key), setItem: (key,value)=>storage.set(key,value) } });
   return { service: window.TriptiContent, storage, calls };
 }
+test('legacy dashboard branding migrates without changing contact or URL settings', async () => {
+  const { service, storage } = fixture();
+  storage.set('triptiContentPreviewV1', JSON.stringify({brand:'Tripti Jewellers',copyright:'Tripti Jewellers. All rights reserved.',email:'triptijewellers4826@gmail.com',instagram:'https://instagram.com/triptijewellers',locatorTitle:'Welcome to Tripti Jewellers!'}));
+  const value = await service.load();
+  assert.equal(value.brand, 'Puru Raj Jewelllers');
+  assert.equal(value.locatorTitle, 'Welcome to Puru Raj Jewelllers!');
+  assert.equal(value.email, 'triptijewellers4826@gmail.com');
+  assert.equal(value.instagram, 'https://instagram.com/triptijewellers');
+});
 test('local settings persist across reloads without touching the live database', async () => {
   const { service, calls, storage } = fixture();
   const value = structuredClone(await service.load());
@@ -50,7 +59,7 @@ test('external links reject executable URLs and text is escaped', () => {
 test('all reference information pages are present and malformed imports keep defaults', async () => {
   const { service } = fixture();
   const value = await service.save({ brand: null, stores: [null], pages: [{ slug: 'privacy', body: '<b>Edited</b>' }] });
-  assert.equal(value.brand, 'Tripti Jewellers');
+  assert.equal(value.brand, 'Puru Raj Jewelllers');
   assert.equal(value.pages.length, 12);
   assert.equal(value.stores.length, 0);
   assert.equal(value.pages.find(p=>p.slug==='privacy').body, '<b>Edited</b>');

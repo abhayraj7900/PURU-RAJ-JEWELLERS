@@ -31,7 +31,7 @@
 .footer-contact-actions a { font-size: .9rem; }
 .footer-connect-row { display: flex; flex-wrap: wrap; align-items: center; gap: 26px; padding: 28px 0; border-block: 1px solid #70414b; }
 .footer-signature { display: flex; align-items: center; gap: 15px; }
-.footer-signature img { width: 46px; height: 56px; object-fit: contain; }
+.footer-signature img { width: 64px; height: 56px; object-fit: contain; }
 .footer-signature span { font: 600 1.8rem/1.1 var(--display); }
 .footer-signature small { display: block; margin-top: 7px; font: 400 .86rem/1.5 var(--body); color: #cdb8bb; }
 .footer-apps { display: flex; flex-wrap: wrap; gap: 8px; }
